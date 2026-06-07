@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>露营地导航 - 后台管理</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="admin-wrap">
+    <div class="admin-header">
+      <h1>🏕️ 活动点管理</h1>
+      <a class="btn secondary" href="index.html">返回导航</a>
+    </div>
+
+    <div class="card">
+      <div class="admin-map-wrap" id="pickMap"></div>
+      <div class="hint">提示：点击地图可自动填入经纬度。也可以手动输入。</div>
+
+      <form id="pointForm">
+        <div class="form-row">
+          <input type="text" name="name" placeholder="地点名称 *" required />
+          <select name="type">
+            <option value="activity">⛺ 活动</option>
+            <option value="service">🛒 服务</option>
+            <option value="entrance">🚪 入口</option>
+            <option value="other">📍 其他</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <input type="number" step="any" name="lat" placeholder="纬度 *" required />
+          <input type="number" step="any" name="lng" placeholder="经度 *" required />
+        </div>
+        <div class="form-row">
+          <textarea name="description" placeholder="描述（可选）"></textarea>
+        </div>
+        <div class="form-row">
+          <button type="submit" class="btn">➕ 添加活动点</button>
+          <button type="button" id="resetBtn" class="btn secondary">重置为默认数据</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>现有活动点</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>类型</th>
+              <th>名称</th>
+              <th>纬度</th>
+              <th>经度</th>
+              <th>描述</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="pointsTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>数据导入 / 导出</h2>
+      <p class="hint">导出 JSON 可用于备份；选择 JSON 文件可批量导入并覆盖现有数据。</p>
+      <div class="form-row">
+        <button type="button" id="exportBtn" class="btn">📥 导出 JSON</button>
+        <label class="btn secondary" style="cursor:pointer">
+          📤 导入 JSON
+          <input type="file" id="importFile" accept="application/json" style="display:none" />
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
