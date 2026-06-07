@@ -62,10 +62,20 @@
     const first = points[0] || { lat: 31.465, lng: 121.236 };
 
     map = L.map('map', { zoomControl: false }).setView([first.lat, first.lng], 14);
-    L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
-      subdomains: ['1', '2', '3', '4'],
+    // 天地图 街道图(底图)
+    const baseUrl = 'https://t{s}.tianditu.gov.cn/vec_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=vec&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TileCol={x}&TileRow={y}&TileMatrix={z}';
+    // 天地图 中文标注(覆盖在底图上)
+    const labelUrl = 'https://t{s}.tianditu.gov.cn/cia_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=cia&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TileCol={x}&TileRow={y}&TileMatrix={z}';
+    L.tileLayer(baseUrl, {
+      subdomains: ['0', '1', '2', '3', '4', '5', '6', '7'],
       maxZoom: 18,
-      attribution: '&copy; 高德地图'
+      attribution: '&copy; 天地图'
+    }).addTo(map);
+    L.tileLayer(labelUrl, {
+      subdomains: ['0', '1', '2', '3', '4', '5', '6', '7'],
+      maxZoom: 18,
+      pane: 'shadowPane',
+      attribution: ''
     }).addTo(map);
 
     renderPoints();
