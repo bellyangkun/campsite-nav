@@ -16,9 +16,10 @@
   function initMap() {
     const first = points[0] || { lat: 31.465, lng: 121.236 };
     map = L.map('pickMap').setView([first.lat, first.lng], 16);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap'
+    L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+      subdomains: ['1', '2', '3', '4'],
+      maxZoom: 18,
+      attribution: '&copy; 高德地图'
     }).addTo(map);
 
     // 将现有活动点显示在管理地图上
