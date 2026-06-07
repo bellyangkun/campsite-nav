@@ -7,7 +7,8 @@
   let points = [];
 
   function init() {
-    points = CampData.getPoints();
+    // 渲染用 GCJ-02(高德),用户输入仍是 WGS-84
+    points = CampData.getDisplayPoints();
     initMap();
     renderTable();
     bindEvents();
@@ -66,9 +67,28 @@
   }
 
   function setFormCoords(lat, lng) {
+    // 地图点的是 GCJ-02(高德),转回 WGS-84 存
+    let wlat = lat, wlng = lng;
+    if (typeof Wgs84ToGcj02 !== 'undefined') {
+      // 反向:GCJ-02 → WGS-84(粗略牛顿迭代)
+      const inv = gcj02ToWgs84(lng, lat);
+      wlat = inv[1];
+      wlng = inv[0];
+    }
     const form = $('#pointForm');
-    form.lat.value = lat.toFixed(6);
-    form.lng.value = lng.toFixed(6);
+    form.lat.value = wlat.toFixed(6);
+    form.lng.value = wlng.toFixed(6);
+  }
+
+  function gcj02ToWgs84(gcjLng, gcjLat) {
+    // 粗略反向:迭代 3 次通常够用
+    let [lng, lat] = [gcjLng, gcjLat];
+    for (let i = 0; i < 5; i++) {
+      const [glng, glat] = Wgs84ToGcj02.wgs84ToGcj02(lng, lat);
+      lng += gcjLng - glng;
+      lat += gcjLat - glat;
+    }
+    return [lng, lat];
   }
 
   function bindEvents() {

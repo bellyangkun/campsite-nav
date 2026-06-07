@@ -57,7 +57,8 @@
 
   // ===== 初始化 =====
   function init() {
-    points = CampData.getPoints();
+    // 渲染坐标用 GCJ-02(高德),用户输入仍是 WGS-84
+    points = CampData.getDisplayPoints();
     const first = points[0] || { lat: 31.465, lng: 121.236 };
 
     map = L.map('map', { zoomControl: false }).setView([first.lat, first.lng], 16);
@@ -148,7 +149,9 @@
     }).addTo(map);
 
     if (userLatLng) {
-      routeLine = L.polyline([userLatLng, [dest.lat, dest.lng]], {
+      // userLatLng 是 WGS-84,转 GCJ-02 渲染
+      const [userLngG, userLatG] = (typeof Wgs84ToGcj02 !== 'undefined') ? Wgs84ToGcj02.wgs84ToGcj02(userLatLng[1], userLatLng[0]) : [userLatLng[1], userLatLng[0]];
+      routeLine = L.polyline([[userLatG, userLngG], [dest.lat, dest.lng]], {
         color: '#2196F3',
         weight: 5,
         opacity: 0.85,
@@ -205,8 +208,11 @@
     const heading = (typeof pos.coords.heading === 'number' && !isNaN(pos.coords.heading)) ? pos.coords.heading : null;
     const accuracy = pos.coords.accuracy || 0;
 
+    // GPS 原始 WGS-84,保留用于距离/方位计算
     userLatLng = [lat, lng];
-    if (userMarker) userMarker.setLatLng(userLatLng);
+    // 渲染位置:转 GCJ-02
+    const [glng, glat] = (typeof Wgs84ToGcj02 !== 'undefined') ? Wgs84ToGcj02.wgs84ToGcj02(lng, lat) : [lng, lat];
+    if (userMarker) userMarker.setLatLng([glat, glng]);
 
     // 移动方向：根据前后两点计算
     if (lastPos) {
@@ -229,7 +235,11 @@
     }
 
     if (selectedDestId) {
-      if (routeLine) routeLine.setLatLngs([userLatLng, [getSelectedPoint().lat, getSelectedPoint().lng]]);
+      if (routeLine) {
+        const [userLngG, userLatG] = (typeof Wgs84ToGcj02 !== 'undefined') ? Wgs84ToGcj02.wgs84ToGcj02(userLatLng[1], userLatLng[0]) : [userLatLng[1], userLatLng[0]];
+        const dest = getSelectedPoint();
+        routeLine.setLatLngs([[userLatG, userLngG], [dest.lat, dest.lng]]);
+      }
       updateRouteInfo();
     }
   }

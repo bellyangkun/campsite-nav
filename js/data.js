@@ -44,6 +44,16 @@
     return JSON.parse(JSON.stringify(DEFAULT_POINTS));
   }
 
+  /**
+   * 返回 GCJ-02 坐标的点(高德地图用)
+   * 内部存储是 WGS-84,只在渲染时转
+   */
+  function getDisplayPoints() {
+    const points = getPoints();
+    if (typeof Wgs84ToGcj02 === 'undefined') return points;
+    return Wgs84ToGcj02.wgs84ToGcj02Batch(points);
+  }
+
   function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m]));
   }
@@ -133,6 +143,7 @@
 
   global.CampData = {
     getPoints,
+    getDisplayPoints,
     savePoints,
     addPoint,
     updatePoint,
