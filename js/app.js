@@ -62,20 +62,11 @@
     const first = points[0] || { lat: 31.465, lng: 121.236 };
 
     map = L.map('map', { zoomControl: false }).setView([first.lat, first.lng], 14);
-    // 天地图 街道图(底图)
-    const baseUrl = 'https://t{s}.tianditu.gov.cn/vec_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=vec&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TileCol={x}&TileRow={y}&TileMatrix={z}';
-    // 天地图 中文标注(覆盖在底图上)
-    const labelUrl = 'https://t{s}.tianditu.gov.cn/cia_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=cia&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TileCol={x}&TileRow={y}&TileMatrix={z}';
-    L.tileLayer(baseUrl, {
-      subdomains: ['0', '1', '2', '3', '4', '5', '6', '7'],
+    // 腾讯地图 街道图(无需 key,z=1-18 全覆盖)
+    L.tileLayer('https://rt{s}.map.gtimg.com/tile?z={z}&x={x}&y={y}&styleid=1', {
+      subdomains: ['0', '1', '2', '3'],
       maxZoom: 18,
-      attribution: '&copy; 天地图'
-    }).addTo(map);
-    L.tileLayer(labelUrl, {
-      subdomains: ['0', '1', '2', '3', '4', '5', '6', '7'],
-      maxZoom: 18,
-      pane: 'shadowPane',
-      attribution: ''
+      attribution: '&copy; 腾讯地图'
     }).addTo(map);
 
     renderPoints();
