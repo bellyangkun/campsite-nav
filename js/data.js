@@ -1,17 +1,29 @@
 /**
  * 共享数据管理
- * 使用 localStorage 存储活动点，并提供导入/导出支持。
- * 如需后端，可替换此文件的读写实现。
+ *
+ * 存储策略 (混合):
+ *   - 服务器 (主): GET/POST /api/points  (lurecamp1.xiabebe.cn nginx 反代到 localhost:3005)
+ *   - localStorage (缓存): 离线/降级用, 启动时尝试同步服务器
+ *
+ * 写操作流程:
+ *   1. 调服务器 POST
+ *   2. 成功后更新 localStorage 缓存
+ *   3. 失败则保持 localStorage, 提示用户
+ *
+ * 读操作流程:
+ *   1. 启动时优先从服务器拉, 拉到就覆盖 localStorage
+ *   2. 服务器失败用 localStorage 缓存
+ *   3. 都没数据用默认 7 活动点
  */
 (function (global) {
   const STORAGE_KEY = 'campsite_points_v2';
+  const API_BASE = '/api';
+  const ADMIN_TOKEN = 'campsite-nav-2026';  // 仅 admin.html 写入时使用
+
+  // 是否在 admin 上下文 (通过 document.body dataset 判断)
+  const IS_ADMIN = document.body && document.body.dataset.role === 'admin';
 
   const DEFAULT_POINTS = [
-    // 乡悦华亭度假村 - 上海市嘉定区华亭镇霜竹公路 518 号
-    // 真实坐标来自百度地图 place/v2 API (服务端 AK):
-    //   - 主入口/Neverland/湖边露营烧烤 用 POI 真实坐标
-    //   - 路亚钓鱼池/一尺花园/林下泵道/中央草坪 度假村中心 ±200-400m 估算
-    // BD-09 → WGS-84 转换 (本地 coords.js)
     { id: 'p1', name: '度假村主入口', lat: 31.481527, lng: 121.286954, description: '霜竹公路518号主入口，停车与签到处', type: 'entrance' },
     { id: 'p2', name: 'Neverland 儿童乐园', lat: 31.481558, lng: 121.286868, description: '5700㎡无动力亲子乐园，金属滑梯、绳网、挖沙', type: 'activity' },
     { id: 'p3', name: '湖边露营烧烤', lat: 31.481486, lng: 121.287068, description: '湖边烧烤野奢露营、皮划艇、CS团建 (联康路277弄18号)', type: 'activity' },
@@ -28,32 +40,129 @@
     other:    { label: '其他', color: '#9E9E9E', icon: '📍' }
   };
 
-  function loadRaw() {
+  // ===== 内部缓存 (内存) =====
+  let memoryCache = null;        // { points: [...], source: 'server'|'local'|'default', updatedAt: ts }
+  let syncPromise = null;        // 防并发同步
+
+  // ===== 服务器 API =====
+  async function fetchServer() {
+    try {
+      const res = await fetch(API_BASE + '/points', {
+        method: 'GET',
+        cache: 'no-store',
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+      if (json.code !== 0 || !Array.isArray(json.data && json.data.points)) {
+        throw new Error('Invalid response');
+      }
+      return { points: json.data.points, updatedAt: Date.now() };
+    } catch (e) {
+      console.warn('[CampData] 拉服务器数据失败:', e.message);
+      return null;
+    }
+  }
+
+  async function postServer(points) {
+    try {
+      const res = await fetch(API_BASE + '/points', {
+        method: 'POST',
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + ADMIN_TOKEN
+        },
+        body: JSON.stringify({ points })
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error('HTTP ' + res.status + ': ' + err);
+      }
+      return await res.json();
+    } catch (e) {
+      console.warn('[CampData] 推送服务器失败:', e.message);
+      throw e;
+    }
+  }
+
+  // ===== localStorage 缓存 =====
+  function loadLocal() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) return JSON.parse(raw);
     } catch (e) {
-      console.warn('读取本地数据失败', e);
+      console.warn('[CampData] 读 localStorage 失败', e);
     }
     return null;
   }
 
-  function getPoints() {
-    const data = loadRaw();
-    // data === null 表示从未访问过，返回默认数据；
-    // 空数组表示用户主动清空，应保留空数组；
-    // 其他异常情况兜底返回默认数据。
-    if (data === null) return JSON.parse(JSON.stringify(DEFAULT_POINTS));
-    if (Array.isArray(data)) return data;
-    return JSON.parse(JSON.stringify(DEFAULT_POINTS));
+  function saveLocal(points) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(points));
+      return true;
+    } catch (e) {
+      console.warn('[CampData] 写 localStorage 失败', e);
+      return false;
+    }
+  }
+
+  // ===== 同步 (启动时自动跑) =====
+  async function syncFromServer() {
+    if (syncPromise) return syncPromise;
+    syncPromise = (async () => {
+      const srv = await fetchServer();
+      if (srv && Array.isArray(srv.points)) {
+        memoryCache = { points: srv.points, source: 'server', updatedAt: srv.updatedAt };
+        saveLocal(srv.points);
+        return memoryCache;
+      }
+      // 降级到 localStorage
+      const local = loadLocal();
+      if (Array.isArray(local)) {
+        memoryCache = { points: local, source: 'local', updatedAt: Date.now() };
+        return memoryCache;
+      }
+      // 都没就用默认
+      memoryCache = { points: JSON.parse(JSON.stringify(DEFAULT_POINTS)), source: 'default', updatedAt: Date.now() };
+      saveLocal(memoryCache.points);
+      return memoryCache;
+    })();
+    return syncPromise;
+  }
+
+  // ===== 公开 API =====
+  async function getPoints() {
+    if (!memoryCache) {
+      const r = await syncFromServer();
+      return r.points;
+    }
+    return memoryCache.points;
   }
 
   /**
-   * 返回 GCJ-02 坐标的点(高德地图用)
-   * 内部存储是 WGS-84,只在渲染时转
+   * 同步版 (仅在已经 sync 过后用), 否则返回默认 7 点
+   * 用于: 页面初始化时快速渲染 (不 await)
+   * 后续 syncFromServer 完成后, 应调用 refreshAll() 重新渲染
    */
+  function getPointsSync() {
+    if (memoryCache) return memoryCache.points;
+    // 尝试 localStorage 兜底
+    const local = loadLocal();
+    if (Array.isArray(local)) {
+      memoryCache = { points: local, source: 'local', updatedAt: Date.now() };
+      return memoryCache.points;
+    }
+    memoryCache = { points: JSON.parse(JSON.stringify(DEFAULT_POINTS)), source: 'default', updatedAt: Date.now() };
+    return memoryCache.points;
+  }
+
+  function getDataSource() {
+    return memoryCache ? memoryCache.source : 'unknown';
+  }
+
   function getDisplayPoints() {
-    const points = getPoints();
+    const points = getPointsSync();
     if (typeof Wgs84ToGcj02 === 'undefined') return points;
     return Wgs84ToGcj02.wgs84ToGcj02Batch(points);
   }
@@ -62,7 +171,8 @@
     return String(str).replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m]));
   }
 
-  function validatePoint(p, partial = false) {
+  function validatePoint(p, partial) {
+    partial = partial || false;
     if (!p) throw new Error('数据无效');
     if (!partial || 'name' in p) {
       if (typeof p.name !== 'string' || p.name.trim() === '') throw new Error('活动点名称不能为空');
@@ -82,82 +192,111 @@
     }
   }
 
-  function savePoints(points) {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(points));
-    } catch (e) {
-      console.warn('保存本地数据失败', e);
-      throw e;
-    }
-  }
-
   function genId() {
     return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
   }
 
-  function addPoint(point) {
+  // ===== 写操作 (admin) =====
+  async function addPoint(point) {
     validatePoint(point);
-    const points = getPoints();
+    const points = getPointsSync().slice();
     point.id = point.id || genId();
     points.push(point);
-    savePoints(points);
-    return points;  // 返回更新后的完整数组, 而非单点
-  }
-
-  function updatePoint(id, updates) {
-    const points = getPoints();
-    const idx = points.findIndex(p => p.id === id);
-    if (idx === -1) return null;
-    points[idx] = { ...points[idx], ...updates, id };
-    savePoints(points);
-    return points;  // 返回完整数组
-  }
-
-  function deletePoint(id) {
-    let points = getPoints();
-    const originalLen = points.length;
-    points = points.filter(p => p.id !== id);
-    if (points.length === originalLen) return points;  // 没找到也返回原数组
-    savePoints(points);
+    await saveAndSync(points);
     return points;
   }
 
-  function resetToDefault() {
+  async function updatePoint(id, updates) {
+    const points = getPointsSync().slice();
+    const idx = points.findIndex(p => p.id === id);
+    if (idx === -1) return null;
+    points[idx] = Object.assign({}, points[idx], updates, { id });
+    await saveAndSync(points);
+    return points;
+  }
+
+  async function deletePoint(id) {
+    const points = getPointsSync().filter(p => p.id !== id);
+    await saveAndSync(points);
+    return points;
+  }
+
+  async function resetToDefault() {
     const defaults = JSON.parse(JSON.stringify(DEFAULT_POINTS));
-    savePoints(defaults);
+    await saveAndSync(defaults);
     return defaults;
   }
 
-  function getTypeMeta(type) {
-    return TYPE_META[type] || TYPE_META.other;
-  }
-
-  function exportJSON() {
-    return JSON.stringify(getPoints(), null, 2);
-  }
-
-  function importJSON(jsonString) {
+  async function importJSON(jsonString) {
     const arr = JSON.parse(jsonString);
     if (!Array.isArray(arr)) throw new Error('数据必须是数组');
     for (const p of arr) {
       validatePoint(p);
       if (!p.id) p.id = genId();
     }
-    savePoints(arr);
+    await saveAndSync(arr);
     return arr;
+  }
+
+  function exportJSON() {
+    return JSON.stringify(getPointsSync(), null, 2);
+  }
+
+  // ===== 内部: 写服务器 + 缓存 =====
+  async function saveAndSync(points) {
+    // admin 才需要推服务器
+    if (IS_ADMIN) {
+      try {
+        await postServer(points);
+        memoryCache = { points: points, source: 'server', updatedAt: Date.now() };
+        saveLocal(points);
+        return { ok: true, source: 'server' };
+      } catch (e) {
+        // 失败仍写 localStorage (离线模式)
+        memoryCache = { points: points, source: 'local', updatedAt: Date.now() };
+        saveLocal(points);
+        throw new Error('已存到本地, 服务器同步失败: ' + e.message);
+      }
+    } else {
+      // 非 admin: 只写 localStorage (游客只读, 不写)
+      memoryCache = { points: points, source: 'local', updatedAt: Date.now() };
+      saveLocal(points);
+      return { ok: true, source: 'local' };
+    }
+  }
+
+  // ===== 启动自动同步 =====
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      syncFromServer().then(() => {
+        document.dispatchEvent(new CustomEvent('campsite-sync-done', {
+          detail: { source: getDataSource() }
+        }));
+      });
+    });
+  } else {
+    // 立即同步 (不阻塞)
+    syncFromServer().then(() => {
+      document.dispatchEvent(new CustomEvent('campsite-sync-done', {
+        detail: { source: getDataSource() }
+      }));
+    });
   }
 
   global.CampData = {
     getPoints,
+    getPointsSync,
     getDisplayPoints,
-    savePoints,
+    getDataSource,
+    syncFromServer,
     addPoint,
     updatePoint,
     deletePoint,
     resetToDefault,
+    importJSON,
+    exportJSON,
     getTypeMeta,
     escapeHtml,
-    exportJSON,
-    importJSON
+    validatePoint
   };
 })(window);

@@ -7,11 +7,26 @@
   let points = [];
 
   function init() {
-    // 渲染用 WGS-84 输入, BMap 内部转 BD-09
-    points = CampData.getPoints();
+    // 首次渲染用 sync 数据 (localStorage 或默认), 后续 sync 完成后重新渲染
+    points = CampData.getPointsSync();
     initMap();
     renderTable();
     bindEvents();
+
+    // 监听服务器同步完成, 自动重新渲染 (新数据可能比 localStorage 新)
+    document.addEventListener('campsite-sync-done', (e) => {
+      console.log('[admin] sync 完成, 数据源:', e.detail.source);
+      points = CampData.getPointsSync();
+      refreshMapMarkers();
+      renderTable();
+      // 提示用户
+      const sourceLabel = { server: '☁️ 服务器', local: '💾 本地缓存', default: '🆕 默认' }[e.detail.source] || e.detail.source;
+      const status = $('#syncStatus');
+      if (status) {
+        status.textContent = `数据源: ${sourceLabel} (${points.length} 个活动点)`;
+        setTimeout(() => { status.textContent = ''; }, 3000);
+      }
+    });
   }
 
   function initMap() {
@@ -121,18 +136,23 @@
       tbody.appendChild(tr);
     });
     tbody.querySelectorAll('button[data-id]').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-id');
         if (!confirm('确认删除该活动点？')) return;
-        points = CampData.deletePoint(id);
-        refreshMapMarkers();
-        renderTable();
+        try {
+          points = await CampData.deletePoint(id);
+          refreshMapMarkers();
+          renderTable();
+          showSyncMsg('✓ 已删除', 'success');
+        } catch (err) {
+          alert('删除失败：' + err.message);
+        }
       });
     });
   }
 
   function bindEvents() {
-    $('#pointForm').addEventListener('submit', (e) => {
+    $('#pointForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
       const newPoint = {
@@ -144,11 +164,11 @@
         description: fd.get('description') || ''
       };
       try {
-        points = CampData.addPoint(newPoint);
+        points = await CampData.addPoint(newPoint);
         e.target.reset();
         refreshMapMarkers();
         renderTable();
-        alert('✓ 已添加');
+        showSyncMsg('✓ 已添加并同步到服务器', 'success');
       } catch (err) {
         alert('添加失败：' + err.message);
       }
@@ -160,11 +180,24 @@
       useLocBtn.addEventListener('click', useMyLocation);
     }
 
-    $('#resetBtn').addEventListener('click', () => {
-      if (!confirm('恢复为默认 6 活动点？现有自定义数据会丢失。')) return;
-      points = CampData.resetToDefault();
-      refreshMapMarkers();
-      renderTable();
+    // 同步状态显示
+    if (!$('#syncStatus')) {
+      const div = document.createElement('div');
+      div.id = 'syncStatus';
+      div.style.cssText = 'position:fixed;top:0;left:0;right:0;text-align:center;padding:6px;background:#e3f2fd;color:#1565c0;font-size:13px;z-index:9999;transition:opacity 0.3s';
+      document.body.prepend(div);
+    }
+
+    $('#resetBtn').addEventListener('click', async () => {
+      if (!confirm('恢复为默认 7 活动点？现有自定义数据会丢失。')) return;
+      try {
+        points = await CampData.resetToDefault();
+        refreshMapMarkers();
+        renderTable();
+        showSyncMsg('✓ 已重置为默认', 'success');
+      } catch (err) {
+        alert('重置失败：' + err.message);
+      }
     });
 
     $('#exportBtn').addEventListener('click', () => {
@@ -182,13 +215,12 @@
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = async () => {
         try {
-          CampData.importJSON(reader.result);
-          points = CampData.getPoints();
+          points = await CampData.importJSON(reader.result);
           refreshMapMarkers();
           renderTable();
-          alert('✓ 导入成功');
+          showSyncMsg('✓ 已导入并同步到服务器', 'success');
         } catch (err) {
           alert('导入失败：' + err.message);
         }
@@ -286,5 +318,17 @@
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
+  }
+
+  // 顶部状态条消息
+  function showSyncMsg(msg, type) {
+    const status = $('#syncStatus');
+    if (!status) return;
+    status.textContent = msg;
+    status.style.background = type === 'success' ? '#c8e6c9' : type === 'error' ? '#ffcdd2' : '#e3f2fd';
+    status.style.color = type === 'success' ? '#2e7d32' : type === 'error' ? '#c62828' : '#1565c0';
+    setTimeout(() => {
+      status.textContent = '';
+    }, 2500);
   }
 })();

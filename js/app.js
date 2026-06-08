@@ -58,8 +58,8 @@
 
   // ===== 初始化 =====
   function init() {
-    // 渲染用 BD-09 (百度)
-    points = CampData.getPoints();
+    // 首次渲染用 sync 数据 (localStorage 或默认)
+    points = CampData.getPointsSync();
     // 默认中心用第一个点的真实位置 (WGS-84)
     const first = points[0] || { lat: 31.485759, lng: 121.297886 };
 
@@ -87,6 +87,18 @@
 
     startGeolocation();
     setupOrientation();
+
+    // 服务器同步完成后, 如果新数据有变化则重渲染
+    document.addEventListener('campsite-sync-done', (e) => {
+      const newPoints = CampData.getPointsSync();
+      if (newPoints.length !== points.length || newPoints.some((p, i) => p.id !== (points[i] && points[i].id))) {
+        console.log('[app] 服务器数据有变化, 重新渲染');
+        points = newPoints;
+        BaiduMap.clearOverlays(map);
+        renderPoints();
+        populateSelect();
+      }
+    });
   }
 
   function renderPoints() {
