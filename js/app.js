@@ -99,6 +99,8 @@
       $('#destSelect').addEventListener('change', onDestChange);
       $('#locateBtn').addEventListener('click', locateMe);
       $('#enableCompassBtn').addEventListener('click', requestOrientation);
+      const navBtn = $('#baiduNavBtn');
+      if (navBtn) navBtn.addEventListener('click', openBaiduWalkingNav);
 
       // 定位失败 banner 按钮
       const retryBtn = $('#locateRetryBtn');
@@ -484,6 +486,60 @@
   function locateMe() {
     if (!userLatLng) return;
     BaiduMap.setCenter(map, userLatLng[1], userLatLng[0], 18);
+  }
+
+  // ===== 跳转百度地图步行导航 =====
+  function openBaiduWalkingNav() {
+    const dest = getSelectedPoint();
+    if (!dest) {
+      alert('请先选择目标地点');
+      return;
+    }
+    // 目标转 BD-09 (百度坐标系)
+    const [destBdLng, destBdLat] = Wgs84ToBd09.wgs84ToBd09(dest.lng, dest.lat);
+
+    // 用户位置 (WGS-84 → BD-09)
+    let origin = '';
+    let originName = '我的位置';
+    if (userLatLng) {
+      const [oLng, oLat] = Wgs84ToBd09.wgs84ToBd09(userLatLng[1], userLatLng[0]);
+      origin = `${oLat},${oLng}`;
+    }
+
+    const destCoord = `${destBdLat},${destBdLng}`;
+    const destName = encodeURIComponent(dest.name);
+
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      // 手机: 优先尝试调起百度地图 App
+      // baidumap:// scheme 在 Android/iOS 都能唤起百度地图
+      const appScheme = `baidumap://map/direction?origin=${origin || 'lat,lng'}&destination=${destCoord}&mode=walking&coord_type=bd09ll&src=webkit|baidumap`;
+      const webFallback = `https://map.baidu.com/dir/?mode=walking&from=${origin ? origin : ''}&to=${destCoord}&to_name=${destName}&coord_type=bd09ll`;
+
+      // 试唤起 App, 1.5s 后没反应则跳 Web
+      const start = Date.now();
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = appScheme;
+      document.body.appendChild(iframe);
+
+      setTimeout(() => {
+        // 1.5s 内页面没 hide, 视为没唤起
+        if (Date.now() - start < 2000) {
+          // 唤起成功, App 会接管, 阻止 fallback
+          return;
+        }
+        window.location.href = webFallback;
+        document.body.removeChild(iframe);
+      }, 1500);
+    } else {
+      // 桌面: 直接跳 Web 导航
+      const webUrl = `https://map.baidu.com/dir/?mode=walking` +
+        (origin ? `&from=${origin}` : '') +
+        `&to=${destCoord}&to_name=${destName}&coord_type=bd09ll`;
+      window.open(webUrl, '_blank');
+    }
   }
 
   // ===== 方向/指南针 =====
