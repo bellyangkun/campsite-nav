@@ -18,12 +18,13 @@
     </div>
   </div>
 
-  <!-- 搜索 + 类型过滤 -->
+  <!-- 目标下拉 + 类型过滤 -->
   <div class="search-bar">
-    <div class="search-input-wrap">
-      <span class="search-icon">🔍</span>
-      <input type="search" id="searchInput" placeholder="搜索活动点..." autocomplete="off" />
-      <button id="searchClear" class="search-clear hidden" title="清空">×</button>
+    <div class="dest-top">
+      <label for="destSelect">📍 目标</label>
+      <select id="destSelect" class="dest-top-select">
+        <option value="">-- 请选择 --</option>
+      </select>
     </div>
     <div class="type-chips" id="typeChips">
       <button class="chip active" data-type="all">全部</button>
@@ -58,13 +59,6 @@
   </div>
 
   <div class="bottom-sheet">
-    <div class="dest-row">
-      <label for="destSelect">目标地点</label>
-      <select id="destSelect">
-        <option value="">-- 请选择 --</option>
-      </select>
-    </div>
-
     <div id="routeInfo" class="route-info hidden">
       <!-- 主信息: 距离 + 时间 -->
       <div class="route-main">

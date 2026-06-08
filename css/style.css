@@ -581,6 +581,40 @@ tr:active { background: #f8f8f8; }
 .login-back:hover { color: #1e3a5f; }
 
 /* ===== 搜索栏 + 类型过滤 ===== */
+
+.dest-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.dest-top label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2d5a87;
+  white-space: nowrap;
+  margin-bottom: 0;
+}
+
+.dest-top-select {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: inherit;
+  background: transparent;
+  padding: 4px 0;
+  cursor: pointer;
+  color: #1e293b;
+}
+
+.dest-top-select:focus { outline: none; }
+
 .search-bar {
   position: absolute;
   top: 60px;
@@ -591,56 +625,6 @@ tr:active { background: #f8f8f8; }
   flex-direction: column;
   gap: 8px;
 }
-
-.search-input-wrap {
-  position: relative;
-  background: #fff;
-  border-radius: 24px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  display: flex;
-  align-items: center;
-  padding: 0 14px;
-  height: 40px;
-}
-
-.search-icon {
-  font-size: 16px;
-  margin-right: 8px;
-  color: #999;
-}
-
-#searchInput {
-  flex: 1;
-  border: none;
-  outline: none;
-  font-size: 14px;
-  font-family: inherit;
-  background: transparent;
-  padding: 0;
-  height: 100%;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-#searchInput::-webkit-search-cancel-button { display: none; }
-
-.search-clear {
-  background: #e0e0e0;
-  color: #666;
-  border: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-}
-
-.search-clear.hidden { display: none; }
 
 .type-chips {
   display: flex;
@@ -710,38 +694,6 @@ tr:active { background: #f8f8f8; }
 /* ===== 底部面板重做 ===== */
 .bottom-sheet {
   padding: 16px 16px 20px;
-}
-
-.dest-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.dest-row label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #555;
-  white-space: nowrap;
-  margin-bottom: 0;
-}
-
-.dest-row select {
-  flex: 1;
-  padding: 10px 12px;
-  border: 1.5px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 14px;
-  font-family: inherit;
-  background: #f8fafc;
-  cursor: pointer;
-}
-
-.dest-row select:focus {
-  outline: none;
-  border-color: #2d5a87;
-  background: #fff;
 }
 
 /* 主信息: 距离 + 时间 */

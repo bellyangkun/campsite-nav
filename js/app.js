@@ -83,7 +83,6 @@
   let watchId = null;
   let orientationActive = false;
   let compassHeading = null;
-  let searchKeyword = '';
   let activeTypeFilter = 'all';
   let mapOverlays = {};      // { pointId: overlay } 用于显隐
 
@@ -110,7 +109,7 @@
       populateSelect();
 
       // 搜索 + 类型过滤
-      setupSearchAndFilter();
+      setupTypeFilter();
 
       // 百度地图 API 异步加载, 等就绪再 init
       BaiduMap._onError = (msg) => {
@@ -188,25 +187,8 @@
     }
   }
 
-  // ===== 搜索 + 类型过滤 =====
-  function setupSearchAndFilter() {
-    const searchInput = $('#searchInput');
-    const searchClear = $('#searchClear');
-    if (searchInput) {
-      searchInput.addEventListener('input', () => {
-        searchKeyword = searchInput.value.trim().toLowerCase();
-        if (searchClear) searchClear.classList.toggle('hidden', !searchKeyword);
-        applyFilters();
-      });
-    }
-    if (searchClear) {
-      searchClear.addEventListener('click', () => {
-        if (searchInput) { searchInput.value = ''; searchInput.focus(); }
-        searchKeyword = '';
-        searchClear.classList.add('hidden');
-        applyFilters();
-      });
-    }
+  // ===== 类型过滤 =====
+  function setupTypeFilter() {
     const chips = document.querySelectorAll('#typeChips .chip');
     chips.forEach(chip => {
       chip.addEventListener('click', () => {
@@ -222,11 +204,6 @@
     // 过滤点
     visiblePoints = points.filter(p => {
       if (activeTypeFilter !== 'all' && p.type !== activeTypeFilter) return false;
-      if (searchKeyword) {
-        const name = (p.name || '').toLowerCase();
-        const desc = (p.description || '').toLowerCase();
-        if (!name.includes(searchKeyword) && !desc.includes(searchKeyword)) return false;
-      }
       return true;
     });
     // 更新地图标记显隐
