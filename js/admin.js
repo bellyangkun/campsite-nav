@@ -7,115 +7,163 @@
   let points = [];
 
   function init() {
-    // 渲染用 GCJ-02(高德),用户输入仍是 WGS-84
-    points = CampData.getDisplayPoints();
+    // 渲染用 WGS-84 输入, BMap 内部转 BD-09
+    points = CampData.getPoints();
     initMap();
     renderTable();
     bindEvents();
   }
 
   function initMap() {
-    const first = points[0] || { lat: 31.465, lng: 121.236 };
-    map = L.map('pickMap').setView([first.lat, first.lng], 14);
-    L.tileLayer('https://rt{s}.map.gtimg.com/tile?z={z}&x={x}&y={y}&styleid=1', {
-      subdomains: ['0', '1', '2', '3'],
-      maxZoom: 18,
-      attribution: '&copy; 腾讯地图'
-    }).addTo(map);
+    const first = points[0] || { lat: 31.485759, lng: 121.297886 };
+    map = BaiduMap.initBaiduMap('pickMap', {
+      lng: first.lng,
+      lat: first.lat,
+      zoom: 15
+    });
 
-    // 将现有活动点显示在管理地图上
     refreshMapMarkers();
 
-    map.on('click', (e) => {
-      const { lat, lng } = e.latlng;
-      setFormCoords(lat, lng);
-      setPickMarker(lat, lng);
+    // BMap 用 addEventListener 监听 click
+    map.addEventListener('click', (e) => {
+      // e.point 是 BD-09 坐标, 反推 WGS-84 给用户显示
+      const bdLng = e.point.lng;
+      const bdLat = e.point.lat;
+      // BD-09 -> GCJ-02 -> WGS-84
+      const wgs84 = bd09ToWgs84(bdLng, bdLat);
+      const wgsLat = wgs84[1];
+      const wgsLng = wgs84[0];
+      $('input[name="lat"]').value = wgsLat.toFixed(6);
+      $('input[name="lng"]').value = wgsLng.toFixed(6);
+      placePickMarker(wgsLng, wgsLat);
     });
+  }
+
+  /**
+   * BD-09 -> WGS-84
+   * (反向 Wgs84ToBd09)
+   */
+  function bd09ToWgs84(bdLng, bdLat) {
+    const xPi = (bdLng * Math.PI) * 3000.0 / 180.0;
+    const z = Math.sqrt(bdLng * bdLng + bdLat * bdLat) - 0.00002 * Math.sin(xPi);
+    const theta = Math.atan2(bdLat, bdLng) - 0.000003 * Math.cos(xPi);
+    const gcjLng = z * Math.cos(theta) - 0.0065;
+    const gcjLat = z * Math.sin(theta) - 0.006;
+    // GCJ-02 -> WGS-84 (反向)
+    return gcj02ToWgs84(gcjLng, gcjLat);
+  }
+
+  function gcj02ToWgs84(lng, lat) {
+    if (typeof outOfChina === 'function' && outOfChina(lng, lat)) return [lng, lat];
+    let dLat = transformLat(lng - 105.0, lat - 35.0);
+    let dLng = transformLng(lng - 105.0, lat - 35.0);
+    const radLat = lat / 180.0 * Math.PI;
+    let magic = Math.sin(radLat);
+    magic = 1 - 0.00669342162296594323 * magic * magic;
+    const sqrtMagic = Math.sqrt(magic);
+    dLat = (dLat * 180.0) / ((6378245.0 * (1 - 0.00669342162296594323)) / (magic * sqrtMagic) * Math.PI);
+    dLng = (dLng * 180.0) / (6378245.0 / sqrtMagic * Math.cos(radLat) * Math.PI);
+    return [lng - dLng, lat - dLat];
+  }
+  // 复用 coords.js 里的 transformLat/Lng
+  function transformLat(x, y) {
+    const PI = 3.1415926535897932384626;
+    let ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
+    ret += (20.0 * Math.sin(6.0 * x * PI) + 20.0 * Math.sin(2.0 * x * PI)) * 2.0 / 3.0;
+    ret += (20.0 * Math.sin(y * PI) + 40.0 * Math.sin(y / 3.0 * PI)) * 2.0 / 3.0;
+    ret += (160.0 * Math.sin(y / 12.0 * PI) + 320 * Math.sin(y * PI / 30.0)) * 2.0 / 3.0;
+    return ret;
+  }
+  function transformLng(x, y) {
+    const PI = 3.1415926535897932384626;
+    let ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
+    ret += (20.0 * Math.sin(6.0 * x * PI) + 20.0 * Math.sin(2.0 * x * PI)) * 2.0 / 3.0;
+    ret += (20.0 * Math.sin(x * PI) + 40.0 * Math.sin(x / 3.0 * PI)) * 2.0 / 3.0;
+    ret += (150.0 * Math.sin(x / 12.0 * PI) + 300.0 * Math.sin(x / 30.0 * PI)) * 2.0 / 3.0;
+    return ret;
+  }
+  function outOfChina(lng, lat) {
+    return lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271;
   }
 
   function refreshMapMarkers() {
-    // 简单实现：清除所有非底图图层并重新添加（pickMarker 除外）
-    map.eachLayer((layer) => {
-      if (layer instanceof L.Marker) {
-        map.removeLayer(layer);
-      }
-    });
+    BaiduMap.clearOverlays(map);
     pickMarker = null;
     points.forEach((p) => {
       const meta = CampData.getTypeMeta(p.type);
-      L.marker([p.lat, p.lng], {
-        icon: L.divIcon({
-          className: 'camp-marker-wrap',
-          html: `<div class="camp-marker-icon" style="color:${meta.color};border-color:${meta.color}">${meta.icon}</div>`,
-          iconSize: [32, 32],
-          iconAnchor: [16, 32]
-        })
-      }).addTo(map).bindPopup(`<b>${p.name}</b>`);
+      const html = `<div class="camp-marker-icon" style="color:${meta.color};border-color:${meta.color}">${meta.icon}</div>`;
+      BaiduMap.addDivMarker(map, p.lng, p.lat, html, { x: 16, y: 16 });
     });
   }
 
-  function setPickMarker(lat, lng) {
-    if (pickMarker) map.removeLayer(pickMarker);
-    pickMarker = L.marker([lat, lng], {
-      icon: L.divIcon({
-        className: 'camp-marker-wrap',
-        html: `<div class="camp-marker-icon" style="color:#E91E63;border-color:#E91E63">✏</div>`,
-        iconSize: [32, 32],
-        iconAnchor: [16, 32]
-      })
-    }).addTo(map);
+  function placePickMarker(lng, lat) {
+    if (pickMarker) {
+      map.removeOverlay(pickMarker);
+    }
+    const html = '<div class="pick-marker">📌</div>';
+    pickMarker = BaiduMap.addDivMarker(map, lng, lat, html, { x: 12, y: 24 });
   }
 
-  function setFormCoords(lat, lng) {
-    // 地图点的是 GCJ-02(高德),转回 WGS-84 存
-    let wlat = lat, wlng = lng;
-    if (typeof Wgs84ToGcj02 !== 'undefined') {
-      // 反向:GCJ-02 → WGS-84(粗略牛顿迭代)
-      const inv = gcj02ToWgs84(lng, lat);
-      wlat = inv[1];
-      wlng = inv[0];
-    }
-    const form = $('#pointForm');
-    form.lat.value = wlat.toFixed(6);
-    form.lng.value = wlng.toFixed(6);
-  }
-
-  function gcj02ToWgs84(gcjLng, gcjLat) {
-    // 粗略反向:迭代 3 次通常够用
-    let [lng, lat] = [gcjLng, gcjLat];
-    for (let i = 0; i < 5; i++) {
-      const [glng, glat] = Wgs84ToGcj02.wgs84ToGcj02(lng, lat);
-      lng += gcjLng - glng;
-      lat += gcjLat - glat;
-    }
-    return [lng, lat];
+  function renderTable() {
+    const tbody = $('#pointsTable');
+    tbody.innerHTML = '';
+    points.forEach((p) => {
+      const meta = CampData.getTypeMeta(p.type);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${meta.icon} ${meta.label}</td>
+        <td>${CampData.escapeHtml(p.name)}</td>
+        <td>${p.lat.toFixed(6)}</td>
+        <td>${p.lng.toFixed(6)}</td>
+        <td>${CampData.escapeHtml(p.description || '')}</td>
+        <td><button class="btn small danger" data-id="${p.id}">删除</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll('button[data-id]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        if (!confirm('确认删除该活动点？')) return;
+        points = CampData.deletePoint(id);
+        refreshMapMarkers();
+        renderTable();
+      });
+    });
   }
 
   function bindEvents() {
     $('#pointForm').addEventListener('submit', (e) => {
       e.preventDefault();
-      const f = e.target;
-      const name = f.name.value.trim();
-      const lat = parseFloat(f.lat.value);
-      const lng = parseFloat(f.lng.value);
-      const type = f.type.value;
-      const description = f.description.value.trim();
-      if (!name || isNaN(lat) || isNaN(lng)) return alert('请填写完整信息');
-
-      CampData.addPoint({ name, lat, lng, type, description });
-      f.reset();
-      refresh();
-    });
-
-    $('#resetBtn').addEventListener('click', () => {
-      if (confirm('确定重置为默认数据吗？当前自定义数据将丢失。')) {
-        CampData.resetToDefault();
-        refresh();
+      const fd = new FormData(e.target);
+      const newPoint = {
+        id: 'p' + Date.now(),
+        name: fd.get('name'),
+        type: fd.get('type'),
+        lat: parseFloat(fd.get('lat')),
+        lng: parseFloat(fd.get('lng')),
+        description: fd.get('description') || ''
+      };
+      try {
+        points = CampData.addPoint(newPoint);
+        e.target.reset();
+        refreshMapMarkers();
+        renderTable();
+        alert('✓ 已添加');
+      } catch (err) {
+        alert('添加失败：' + err.message);
       }
     });
 
+    $('#resetBtn').addEventListener('click', () => {
+      if (!confirm('恢复为默认 6 活动点？现有自定义数据会丢失。')) return;
+      points = CampData.resetToDefault();
+      refreshMapMarkers();
+      renderTable();
+    });
+
     $('#exportBtn').addEventListener('click', () => {
-      const blob = new Blob([CampData.exportJSON()], { type: 'application/json' });
+      const json = CampData.exportJSON();
+      const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -128,58 +176,19 @@
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = (ev) => {
+      reader.onload = () => {
         try {
-          CampData.importJSON(ev.target.result);
-          alert('导入成功');
-          refresh();
+          CampData.importJSON(reader.result);
+          points = CampData.getPoints();
+          refreshMapMarkers();
+          renderTable();
+          alert('✓ 导入成功');
         } catch (err) {
           alert('导入失败：' + err.message);
         }
       };
       reader.readAsText(file);
-      e.target.value = '';
     });
-  }
-
-  function refresh() {
-    points = CampData.getPoints();
-    renderTable();
-    refreshMapMarkers();
-  }
-
-  function renderTable() {
-    const tbody = $('#pointsTable');
-    tbody.innerHTML = '';
-    if (!points.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999">暂无活动点</td></tr>';
-      return;
-    }
-    points.forEach((p) => {
-      const meta = CampData.getTypeMeta(p.type);
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><span style="color:${meta.color};font-weight:700">${meta.icon} ${meta.label}</span></td>
-        <td>${escapeHtml(p.name)}</td>
-        <td>${p.lat.toFixed(6)}</td>
-        <td>${p.lng.toFixed(6)}</td>
-        <td>${escapeHtml(p.description || '')}</td>
-        <td>
-          <button class="btn danger small" data-id="${p.id}">删除</button>
-        </td>
-      `;
-      tr.querySelector('button').addEventListener('click', () => {
-        if (confirm('确定删除“' + p.name + '”吗？')) {
-          CampData.deletePoint(p.id);
-          refresh();
-        }
-      });
-      tbody.appendChild(tr);
-    });
-  }
-
-  function escapeHtml(str) {
-    return String(str).replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m]));
   }
 
   if (document.readyState === 'loading') {

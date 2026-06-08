@@ -66,3 +66,48 @@ function wgs84ToGcj02Batch(points) {
 
 // 全局
 window.Wgs84ToGcj02 = { wgs84ToGcj02, wgs84ToGcj02Batch };
+
+/**
+ * WGS-84 → BD-09 (百度坐标系)
+ * 算法: 先 WGS-84 → GCJ-02, 再 GCJ-02 → BD-09
+ * @param {number} lng WGS 经度
+ * @param {number} lat WGS 纬度
+ * @returns {[lng, lat]} BD-09 经纬度
+ */
+function wgs84ToBd09(lng, lat) {
+  if (outOfChina(lng, lat)) return [lng, lat];
+  const [gcjLng, gcjLat] = wgs84ToGcj02(lng, lat);
+  // GCJ-02 → BD-09
+  const xPi = (gcjLng * PI) * 3000.0 / 180.0;
+  const z = Math.sqrt(gcjLng * gcjLng + gcjLat * gcjLat) + 0.00002 * Math.sin(xPi);
+  const theta = Math.atan2(gcjLat, gcjLng) + 0.000003 * Math.cos(xPi);
+  const bdLng = z * Math.cos(theta) + 0.0065;
+  const bdLat = z * Math.sin(theta) + 0.006;
+  return [bdLng, bdLat];
+}
+
+/**
+ * 批量 WGS-84 → BD-09
+ * @param {Array<{lat, lng, ...}>} points
+ * @returns {Array}
+ */
+function wgs84ToBd09Batch(points) {
+  return points.map(p => {
+    if (typeof p.lat === 'number' && typeof p.lng === 'number') {
+      const [bdLng, bdLat] = wgs84ToBd09(p.lng, p.lat);
+      return { ...p, lat: bdLat, lng: bdLng };
+    }
+    return p;
+  });
+}
+
+/**
+ * 返回 BD-09 坐标的点(百度地图瓦片用)
+ */
+function getBd09Points(points) {
+  if (typeof wgs84ToBd09 === 'undefined') return points;
+  return wgs84ToBd09Batch(points);
+}
+
+window.Wgs84ToBd09 = { wgs84ToBd09, wgs84ToBd09Batch };
+window.CampCoords = { wgs84ToGcj02, wgs84ToGcj02Batch, wgs84ToBd09, wgs84ToBd09Batch, getBd09Points };
