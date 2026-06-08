@@ -500,6 +500,9 @@
   }
 
   // ===== 跳转百度地图步行导航 =====
+  // 兼容方案: 微信内置浏览器 / 普通 Safari / 桌面 Chrome
+  // 微信内禁用 iframe scheme 唤起 + _blank, 必须用 location.href
+  // 微信内访问 map.baidu.com/dir/ 会自动提示"在百度地图中打开"(已装)或显示 Web 规划
   function openBaiduWalkingNav() {
     const dest = getSelectedPoint();
     if (!dest) {
@@ -511,7 +514,6 @@
 
     // 用户位置 (WGS-84 → BD-09)
     let origin = '';
-    let originName = '我的位置';
     if (userLatLng) {
       const [oLng, oLat] = Wgs84ToBd09.wgs84ToBd09(userLatLng[1], userLatLng[0]);
       origin = `${oLat},${oLng}`;
@@ -519,38 +521,77 @@
 
     const destCoord = `${destBdLat},${destBdLng}`;
     const destName = encodeURIComponent(dest.name);
+    const isWeixin = /MicroMessenger/i.test(navigator.userAgent);
 
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    // H5 调起百度地图 (Web 端会跳转到 map.baidu.com, App/微信识别后弹"在 App 打开")
+    const h5Url = `https://map.baidu.com/dir/?mode=walking` +
+      (origin ? `&from=${origin}` : '') +
+      `&to=${destCoord}&to_name=${destName}&coord_type=bd09ll`;
 
-    if (isMobile) {
-      // 手机: 优先尝试调起百度地图 App
-      // baidumap:// scheme 在 Android/iOS 都能唤起百度地图
-      const appScheme = `baidumap://map/direction?origin=${origin || 'lat,lng'}&destination=${destCoord}&mode=walking&coord_type=bd09ll&src=webkit|baidumap`;
-      const webFallback = `https://map.baidu.com/dir/?mode=walking&from=${origin ? origin : ''}&to=${destCoord}&to_name=${destName}&coord_type=bd09ll`;
-
-      // 试唤起 App, 1.5s 后没反应则跳 Web
-      const start = Date.now();
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = appScheme;
-      document.body.appendChild(iframe);
-
+    if (isWeixin) {
+      // 微信内置浏览器:
+      // 1. 用 location.href 跳 (微信会自动转给 baidumap 引擎)
+      // 2. 失败时弹提示, 让用户复制到外部浏览器
+      try {
+        location.href = h5Url;
+      } catch (e) {
+        showWeixinTip(h5Url);
+      }
+      // 兜底: 2.5s 后还在本页, 弹提示
       setTimeout(() => {
-        // 1.5s 内页面没 hide, 视为没唤起
-        if (Date.now() - start < 2000) {
-          // 唤起成功, App 会接管, 阻止 fallback
-          return;
+        if (document.visibilityState === 'visible' && !document.hidden) {
+          showWeixinTip(h5Url);
         }
-        window.location.href = webFallback;
-        document.body.removeChild(iframe);
-      }, 1500);
+      }, 2500);
     } else {
-      // 桌面: 直接跳 Web 导航
-      const webUrl = `https://map.baidu.com/dir/?mode=walking` +
-        (origin ? `&from=${origin}` : '') +
-        `&to=${destCoord}&to_name=${destName}&coord_type=bd09ll`;
-      window.open(webUrl, '_blank');
+      // 普通浏览器 (桌面 Safari/Chrome, 手机 Safari/Chrome):
+      // 优先用 baidumap:// scheme 唤起 App, 1.5s 没反应跳 Web
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        const appScheme = `baidumap://map/direction?origin=${origin || 'lat,lng'}&destination=${destCoord}&mode=walking&coord_type=bd09ll&src=webkit|baidumap`;
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = appScheme;
+        document.body.appendChild(iframe);
+        setTimeout(() => {
+          if (document.visibilityState === 'visible') {
+            window.location.href = h5Url;
+          }
+          document.body.removeChild(iframe);
+        }, 1500);
+      } else {
+        // 桌面: 新窗口打开 Web
+        window.open(h5Url, '_blank');
+      }
     }
+  }
+
+  // 微信内兜底提示: 让用户复制链接到外部浏览器打开
+  function showWeixinTip(url) {
+    // 只弹一次
+    if (document.getElementById('weixinTipModal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'weixinTipModal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;padding:20px';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:12px;padding:20px;max-width:340px;width:100%">
+        <div style="font-size:32px;text-align:center;margin-bottom:8px">🗺️</div>
+        <h3 style="margin:0 0 8px;font-size:16px;text-align:center">打开百度地图</h3>
+        <p style="margin:0 0 12px;font-size:13px;color:#555;line-height:1.5;text-align:center">
+          微信内可能无法直接唤起, 请点击右上角 <strong>···</strong> 选择<br/>「<strong>在浏览器中打开</strong>」
+        </p>
+        <div style="background:#f5f5f5;padding:8px 10px;border-radius:6px;font-size:12px;word-break:break-all;color:#666;margin-bottom:12px;font-family:monospace">
+          ${url}
+        </div>
+        <button id="weixinTipClose" style="width:100%;padding:10px;background:#2d5a87;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer">我知道了</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal || e.target.id === 'weixinTipClose') {
+        document.body.removeChild(modal);
+      }
+    });
   }
 
   // ===== 方向/指南针 =====
