@@ -513,13 +513,14 @@
     const [destBdLng, destBdLat] = Wgs84ToBd09.wgs84ToBd09(dest.lng, dest.lat);
 
     // 用户位置 (WGS-84 → BD-09)
+    // 注意: 百度 map.baidu.com/dir/ 的 from/to 格式是 "lng,lat" (经度在前, 纬度在后)
     let origin = '';
     if (userLatLng) {
       const [oLng, oLat] = Wgs84ToBd09.wgs84ToBd09(userLatLng[1], userLatLng[0]);
-      origin = `${oLat},${oLng}`;
+      origin = `${oLng},${oLat}`;
     }
 
-    const destCoord = `${destBdLat},${destBdLng}`;
+    const destCoord = `${destBdLng},${destBdLat}`;  // 修正: lng,lat 顺序
     const destName = encodeURIComponent(dest.name);
     const isWeixin = /MicroMessenger/i.test(navigator.userAgent);
 
@@ -548,7 +549,8 @@
       // 优先用 baidumap:// scheme 唤起 App, 1.5s 没反应跳 Web
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       if (isMobile) {
-        const appScheme = `baidumap://map/direction?origin=${origin || 'lat,lng'}&destination=${destCoord}&mode=walking&coord_type=bd09ll&src=webkit|baidumap`;
+        // baidumap:// 的 origin/destination 也是 lng,lat 格式
+        const appScheme = `baidumap://map/direction?origin=${origin || 'lng,lat'}&destination=${destCoord}&mode=walking&coord_type=bd09ll&src=webkit|baidumap`;
         const iframe = document.createElement('iframe');
         iframe.style.display = 'none';
         iframe.src = appScheme;
