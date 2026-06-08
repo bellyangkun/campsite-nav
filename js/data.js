@@ -8,14 +8,17 @@
 
   const DEFAULT_POINTS = [
     // 乡悦华亭度假村 - 上海市嘉定区华亭镇霜竹公路 518 号
-    // 真实坐标来自百度 POI 搜索 (BD-09) → 转换为 WGS-84
-    // 度假村中心: WGS-84 (31.4815, 121.287) ≈ 嘉定区华亭镇
+    // 真实坐标来自百度地图 place/v2 API (服务端 AK):
+    //   - 主入口/Neverland/湖边露营烧烤 用 POI 真实坐标
+    //   - 路亚钓鱼池/一尺花园/林下泵道/中央草坪 度假村中心 ±200-400m 估算
+    // BD-09 → WGS-84 转换 (本地 coords.js)
     { id: 'p1', name: '度假村主入口', lat: 31.481527, lng: 121.286954, description: '霜竹公路518号主入口，停车与签到处', type: 'entrance' },
     { id: 'p2', name: 'Neverland 儿童乐园', lat: 31.481558, lng: 121.286868, description: '5700㎡无动力亲子乐园，金属滑梯、绳网、挖沙', type: 'activity' },
-    { id: 'p3', name: '路亚钓鱼池', lat: 31.483334, lng: 121.283559, description: '改造鱼塘，鲈鱼/鳜鱼/虹鳟/梭鲈鱼，¥168/天', type: 'activity' },
-    { id: 'p4', name: '一尺花园咖啡馆', lat: 31.479926, lng: 121.289273, description: '温室花园咖啡，扶荔宫，餐饮+打卡', type: 'service' },
-    { id: 'p5', name: '林下泵道', lat: 31.482202, lng: 121.290575, description: '上海最大林下泵道，初级/标准/腾跃赛道', type: 'activity' },
-    { id: 'p6', name: '中央草坪', lat: 31.481956, lng: 121.287569, description: '露营、飞盘、野餐、亲子活动', type: 'activity' }
+    { id: 'p3', name: '湖边露营烧烤', lat: 31.481486, lng: 121.287068, description: '湖边烧烤野奢露营、皮划艇、CS团建 (联康路277弄18号)', type: 'activity' },
+    { id: 'p4', name: '路亚钓鱼池', lat: 31.483293, lng: 121.283545, description: '改造鱼塘，鲈鱼/鳜鱼/虹鳟/梭鲈鱼，¥168/天', type: 'activity' },
+    { id: 'p5', name: '一尺花园咖啡馆', lat: 31.479885, lng: 121.289259, description: '温室花园咖啡，扶荔宫，餐饮+打卡', type: 'service' },
+    { id: 'p6', name: '林下泵道', lat: 31.482161, lng: 121.290561, description: '上海最大林下泵道，初级/标准/腾跃赛道', type: 'activity' },
+    { id: 'p7', name: '中央草坪', lat: 31.481916, lng: 121.287555, description: '露营、飞盘、野餐、亲子活动', type: 'activity' }
   ];
 
   const TYPE_META = {
