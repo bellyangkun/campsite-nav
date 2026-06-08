@@ -9,15 +9,23 @@
   function init() {
     // 首次渲染用 sync 数据 (localStorage 或默认), 后续 sync 完成后重新渲染
     points = CampData.getPointsSync();
-    initMap();
     renderTable();
     bindEvents();
+
+    // 百度地图 API 异步加载, 等就绪再 initMap
+    BaiduMap._onError = (msg) => {
+      const el = document.getElementById('pickMap');
+      if (el) el.innerHTML = '<div style="padding:20px;color:#c62828;background:#ffebee">⚠️ ' + msg + '</div>';
+    };
+    BaiduMap.ready(() => {
+      initMap();
+    });
 
     // 监听服务器同步完成, 自动重新渲染 (新数据可能比 localStorage 新)
     document.addEventListener('campsite-sync-done', (e) => {
       console.log('[admin] sync 完成, 数据源:', e.detail.source);
       points = CampData.getPointsSync();
-      refreshMapMarkers();
+      if (map) refreshMapMarkers();
       renderTable();
       // 提示用户
       const sourceLabel = { server: '☁️ 服务器', local: '💾 本地缓存', default: '🆕 默认' }[e.detail.source] || e.detail.source;
@@ -102,6 +110,7 @@
   }
 
   function refreshMapMarkers() {
+    if (!map) return;  // 地图未就绪
     BaiduMap.clearOverlays(map);
     pickMarker = null;
     points.forEach((p) => {
@@ -112,6 +121,7 @@
   }
 
   function placePickMarker(lng, lat) {
+    if (!map) return;  // 地图未就绪
     if (pickMarker) {
       map.removeOverlay(pickMarker);
     }

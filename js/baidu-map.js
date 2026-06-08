@@ -2,28 +2,42 @@
  * 百度地图 BMap JS API 集成
  *
  * 用法:
- *   1. 在 HTML 引入百度 JS API (BMapLoader.js 之前)
- *      <script src="https://api.map.baidu.com/api?v=3.0&ak=YOUR_AK"></script>
- *   2. 调用 initBaiduMap('map', { lng: 121.298, lat: 31.486, zoom: 15 })
+ *   1. HTML 引入 <script src="https://api.map.baidu.com/api?v=3.0&ak=..."></script>
+ *   2. 用 BaiduMap.ready(() => { ... }) 包裹所有 BMap 调用
  *
  * 坐标系约定:
  *   - 数据存储 WGS-84
  *   - 渲染 BD-09 (BMap 默认)
  *   - 通过 Wgs84ToBd09 转换
- *
- * 注意: 此文件依赖:
- *   - <script src="js/coords.js"></script> (提供 Wgs84ToBd09)
- *   - 百度 JS API 全局 (BMap)
  */
 (function (global) {
   'use strict';
 
   /**
-   * 把 HTML 元素变成 BMap 地图
-   * @param {string} domId 容器 ID
-   * @param {object} opts { lng, lat, zoom, enableScrollWheelZoom }
-   * @returns BMap.Map 实例
+   * 等待 BMap 就绪 (百度 JS API 加载是异步的, getscript 注入 <script>)
+   * @param {function} callback
    */
+  function ready(callback) {
+    if (typeof BMap !== 'undefined' && BMap.Map) {
+      callback();
+      return;
+    }
+    // 轮询等待
+    let attempts = 0;
+    const maxAttempts = 100;  // 10s
+    const timer = setInterval(() => {
+      attempts++;
+      if (typeof BMap !== 'undefined' && BMap.Map) {
+        clearInterval(timer);
+        callback();
+      } else if (attempts >= maxAttempts) {
+        clearInterval(timer);
+        console.error('[BaiduMap] 等待 BMap 加载超时 (10s)');
+        if (global.BaiduMap._onError) global.BaiduMap._onError('百度地图 JS API 加载超时, 请检查网络或 AK');
+      }
+    }, 100);
+  }
+
   function initBaiduMap(domId, opts) {
     opts = opts || {};
     const map = new BMap.Map(domId, { enableMapClick: false });
@@ -33,32 +47,6 @@
       map.enableScrollWheelZoom(true);
     }
     return map;
-  }
-
-  /**
-   * 在地图上添加一个标注 (WGS-84 输入)
-   * @param {BMap.Map} map
-   * @param {number} wgsLng
-   * @param {number} wgsLat
-   * @param {string} html 自定义 DOM (HTML 字符串)
-   * @param {object} anchor {x, y} 偏移
-   * @returns BMap.Marker
-   */
-  function addMarker(map, wgsLng, wgsLat, html, anchor) {
-    const [bdLng, bdLat] = Wgs84ToBd09.wgs84ToBd09(wgsLng, wgsLat);
-    const point = new BMap.Point(bdLng, bdLat);
-    const marker = new BMap.Marker(point, {
-      icon: new BMap.Symbol(html || '📍', {
-        // 用 Symbol 的 HTML 模式
-      })
-    });
-    // BMap.Marker 默认是 BMap.Icon, 改用自定义 div 需 setIcon
-    if (html) {
-      const customIcon = createDivIcon(html, anchor);
-      marker.setIcon(customIcon);
-    }
-    map.addOverlay(marker);
-    return marker;
   }
 
   /**
@@ -89,14 +77,6 @@
     }
   }
 
-  function createDivIcon(html, anchor) {
-    // 兼容旧 API, 直接返回 null
-    return null;
-  }
-
-  /**
-   * 在地图上添加自定义 DIV 标注
-   */
   function addDivMarker(map, wgsLng, wgsLat, html, anchor) {
     const [bdLng, bdLat] = Wgs84ToBd09.wgs84ToBd09(wgsLng, wgsLat);
     const point = new BMap.Point(bdLng, bdLat);
@@ -105,9 +85,6 @@
     return overlay;
   }
 
-  /**
-   * 画两点之间的折线 (WGS-84 输入)
-   */
   function addPolyline(map, wgsP1, wgsP2, opts) {
     const [lng1, lat1] = Wgs84ToBd09.wgs84ToBd09(wgsP1.lng, wgsP1.lat);
     const [lng2, lat2] = Wgs84ToBd09.wgs84ToBd09(wgsP2.lng, wgsP2.lat);
@@ -124,53 +101,29 @@
     return line;
   }
 
-  /**
-   * 设置地图中心 (WGS-84)
-   */
   function setCenter(map, wgsLng, wgsLat, zoom) {
     const [bdLng, bdLat] = Wgs84ToBd09.wgs84ToBd09(wgsLng, wgsLat);
     map.centerAndZoom(new BMap.Point(bdLng, bdLat), zoom || map.getZoom());
   }
 
-  /**
-   * 把 GPS 当前位置 (WGS-84) 设为地图中心
-   */
   function panTo(map, wgsLng, wgsLat) {
     const [bdLng, bdLat] = Wgs84ToBd09.wgs84ToBd09(wgsLng, wgsLat);
     map.panTo(new BMap.Point(bdLng, bdLat));
   }
 
-  /**
-   * 在两点间画折线 (覆盖旧)
-   */
-  function addLineBetween(map, wgs1, wgs2, opts) {
-    return addPolyline(map, wgs1, wgs2, opts);
-  }
-
-  /**
-   * 添加信息窗
-   */
-  function addInfoWindow(map, wgsLng, wgsLat, content) {
-    const [bdLng, bdLat] = Wgs84ToBd09.wgs84ToBd09(wgsLng, wgsLat);
-    const info = new BMap.InfoWindow(content, { width: 200, height: 80 });
-    // 注意: InfoWindow 不直接添加到 map, 而是通过 marker.openInfoWindow 调用
-    return { info, point: new BMap.Point(bdLng, bdLat) };
-  }
-
-  /**
-   * 移除所有覆盖物 (除 tile 外)
-   */
   function clearOverlays(map) {
     map.clearOverlays();
   }
 
   global.BaiduMap = {
+    ready,
     initBaiduMap,
     addDivMarker,
     addPolyline,
     setCenter,
     panTo,
     clearOverlays,
-    DivOverlay
+    DivOverlay,
+    _onError: null
   };
 })(window);

@@ -63,18 +63,7 @@
     // 默认中心用第一个点的真实位置 (WGS-84)
     const first = points[0] || { lat: 31.485759, lng: 121.297886 };
 
-    // 初始化百度地图
-    map = BaiduMap.initBaiduMap('map', {
-      lng: first.lng,
-      lat: first.lat,
-      zoom: 15,
-      enableScrollWheelZoom: true
-    });
-
-    renderPoints();
-    populateSelect();
-    createUserMarker(first.lat, first.lng);
-
+    // 绑定 UI 事件 (不依赖地图)
     $('#destSelect').addEventListener('change', onDestChange);
     $('#locateBtn').addEventListener('click', locateMe);
     $('#enableCompassBtn').addEventListener('click', requestOrientation);
@@ -85,6 +74,24 @@
     if (retryBtn) retryBtn.addEventListener('click', () => { hideLocateError(); startGeolocation(); });
     if (dismissBtn) dismissBtn.addEventListener('click', hideLocateError);
 
+    populateSelect();
+
+    // 百度地图 API 异步加载, 等就绪再 init
+    BaiduMap._onError = (msg) => {
+      const el = document.getElementById('map');
+      if (el) el.innerHTML = '<div style="padding:20px;color:#fff;background:#c62828">⚠️ ' + msg + '</div>';
+    };
+    BaiduMap.ready(() => {
+      map = BaiduMap.initBaiduMap('map', {
+        lng: first.lng,
+        lat: first.lat,
+        zoom: 15,
+        enableScrollWheelZoom: true
+      });
+      renderPoints();
+      createUserMarker(first.lat, first.lng);
+    });
+
     startGeolocation();
     setupOrientation();
 
@@ -94,9 +101,11 @@
       if (newPoints.length !== points.length || newPoints.some((p, i) => p.id !== (points[i] && points[i].id))) {
         console.log('[app] 服务器数据有变化, 重新渲染');
         points = newPoints;
-        BaiduMap.clearOverlays(map);
-        renderPoints();
         populateSelect();
+        if (map) {
+          BaiduMap.clearOverlays(map);
+          renderPoints();
+        }
       }
     });
   }
