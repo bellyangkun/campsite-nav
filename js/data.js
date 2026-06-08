@@ -101,7 +101,7 @@
     point.id = point.id || genId();
     points.push(point);
     savePoints(points);
-    return point;
+    return points;  // 返回更新后的完整数组, 而非单点
   }
 
   function updatePoint(id, updates) {
@@ -110,20 +110,22 @@
     if (idx === -1) return null;
     points[idx] = { ...points[idx], ...updates, id };
     savePoints(points);
-    return points[idx];
+    return points;  // 返回完整数组
   }
 
   function deletePoint(id) {
     let points = getPoints();
     const originalLen = points.length;
     points = points.filter(p => p.id !== id);
-    if (points.length === originalLen) return false;
+    if (points.length === originalLen) return points;  // 没找到也返回原数组
     savePoints(points);
-    return true;
+    return points;
   }
 
   function resetToDefault() {
-    savePoints(JSON.parse(JSON.stringify(DEFAULT_POINTS)));
+    const defaults = JSON.parse(JSON.stringify(DEFAULT_POINTS));
+    savePoints(defaults);
+    return defaults;
   }
 
   function getTypeMeta(type) {
