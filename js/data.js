@@ -20,6 +20,33 @@
   const API_BASE = '/api';
   const ADMIN_TOKEN = 'campsite-nav-2026';  // 仅 admin.html 写入时使用
 
+  // 错误上报到服务器 (解决 Safari/Chrome 调试困难)
+  function reportDiag(level, msg, extra) {
+    try {
+      const payload = JSON.stringify({
+        level, msg,
+        url: location.href,
+        ua: navigator.userAgent.slice(0, 80),
+        ts: Date.now(),
+        ...(extra || {})
+      });
+      // navigator.sendBeacon 优先, fallback fetch
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(API_BASE + '/diag', new Blob([payload], { type: 'application/json' }));
+      } else {
+        fetch(API_BASE + '/diag', { method: 'POST', body: payload, headers: { 'Content-Type': 'application/json' }, keepalive: true }).catch(() => {});
+      }
+    } catch (e) {}
+  }
+
+  // 全局错误自动上报
+  window.addEventListener('error', (e) => {
+    reportDiag('error', e.message, { file: e.filename, line: e.lineno, col: e.colno, stack: e.error && e.error.stack });
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    reportDiag('unhandledrejection', String(e.reason), { stack: e.reason && e.reason.stack });
+  });
+
   // 是否在 admin 上下文 (通过 document.body dataset 判断)
   // 延迟到 DOM ready 后再读, 避免 body 还未就绪
   let IS_ADMIN = false;
@@ -144,6 +171,18 @@
     return memoryCache.points;
   }
 
+  // 暴露调试用
+  global.__campDebug = () => ({
+    memoryCache: memoryCache ? { source: memoryCache.source, count: memoryCache.points.length, ids: memoryCache.points.map(p => p.id) } : null,
+    localStorage: (function() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw).length : 'null';
+      } catch (e) { return 'err: ' + e.message; }
+    })(),
+    isAdmin: IS_ADMIN
+  });
+
   /**
    * 同步版 (仅在已经 sync 过后用), 否则返回默认 7 点
    * 用于: 页面初始化时快速渲染 (不 await)
@@ -151,9 +190,9 @@
    */
   function getPointsSync() {
     if (memoryCache) return memoryCache.points;
-    // 尝试 localStorage 兜底
+    // 尝试 localStorage 兜底 (但空数组视为"无有效数据", 用默认)
     const local = loadLocal();
-    if (Array.isArray(local)) {
+    if (Array.isArray(local) && local.length > 0) {
       memoryCache = { points: local, source: 'local', updatedAt: Date.now() };
       return memoryCache.points;
     }
@@ -202,12 +241,17 @@
 
   // ===== 写操作 (admin) =====
   async function addPoint(point) {
-    validatePoint(point);
-    const points = getPointsSync().slice();
-    point.id = point.id || genId();
-    points.push(point);
-    await saveAndSync(points);
-    return points;
+    try {
+      validatePoint(point);
+      const points = getPointsSync().slice();
+      point.id = point.id || genId();
+      points.push(point);
+      await saveAndSync(points);
+      return points;
+    } catch (e) {
+      reportDiag('addPoint-error', e.message, { point, stack: e.stack });
+      throw e;
+    }
   }
 
   async function updatePoint(id, updates) {
@@ -244,6 +288,10 @@
 
   function exportJSON() {
     return JSON.stringify(getPointsSync(), null, 2);
+  }
+
+  function getTypeMeta(type) {
+    return TYPE_META[type] || TYPE_META.other;
   }
 
   // ===== 内部: 写服务器 + 缓存 =====
