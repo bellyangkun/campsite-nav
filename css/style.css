@@ -277,3 +277,126 @@ tr:active { background: #f8f8f8; }
   font-size: 13px;
   margin: 6px 0 12px;
 }
+
+/* ===== 定位失败 Banner ===== */
+.locate-error-banner {
+  position: absolute;
+  top: 80px;
+  left: 16px;
+  right: 16px;
+  z-index: 50;
+  background: #fff3e0;
+  border: 1px solid #ffb74d;
+  border-left: 4px solid #ff9800;
+  border-radius: 8px;
+  padding: 12px 14px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  animation: slideDown 0.3s ease-out;
+}
+
+.locate-error-banner.hidden {
+  display: none !important;
+}
+
+.locate-error-icon {
+  font-size: 24px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.locate-error-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.locate-error-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e65100;
+  margin-bottom: 4px;
+}
+
+.locate-error-msg {
+  font-size: 12px;
+  color: #5d4037;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.locate-error-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.locate-error-retry,
+.locate-error-dismiss {
+  padding: 6px 12px;
+  font-size: 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.locate-error-retry {
+  background: #ff9800;
+  color: #fff;
+  font-weight: 500;
+}
+
+.locate-error-retry:hover {
+  background: #f57c00;
+}
+
+.locate-error-retry:active {
+  background: #ef6c00;
+}
+
+.locate-error-dismiss {
+  background: transparent;
+  color: #8d6e63;
+  border: 1px solid #d7ccc8;
+}
+
+.locate-error-dismiss:hover {
+  background: rgba(0,0,0,0.04);
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* 失败时, 用户位置标记也变灰 + 加 ❌ */
+.user-marker-icon.failed {
+  opacity: 0.5;
+  position: relative;
+}
+
+.user-marker-icon.failed::after {
+  content: '❌';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 14px;
+  background: #fff;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}

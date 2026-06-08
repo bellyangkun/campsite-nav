@@ -79,6 +79,12 @@
     $('#locateBtn').addEventListener('click', locateMe);
     $('#enableCompassBtn').addEventListener('click', requestOrientation);
 
+    // 定位失败 banner 按钮
+    const retryBtn = $('#locateRetryBtn');
+    const dismissBtn = $('#locateDismissBtn');
+    if (retryBtn) retryBtn.addEventListener('click', () => { hideLocateError(); startGeolocation(); });
+    if (dismissBtn) dismissBtn.addEventListener('click', hideLocateError);
+
     startGeolocation();
     setupOrientation();
   }
@@ -191,12 +197,67 @@
 
   // ===== 定位 =====
   function startGeolocation() {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      showLocateError('浏览器不支持定位', '当前浏览器没有 Geolocation API, 无法获取位置。请用 Chrome / Safari / Edge 访问。');
+      return;
+    }
+    // 显示"定位中"状态
+    $('#distText').textContent = '定位中…';
+    $('#dirText').textContent = '定位中…';
+
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+    }
+
     watchId = navigator.geolocation.watchPosition(
       onPosition,
-      (err) => console.warn('定位失败', err),
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+      onPositionError,
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
     );
+  }
+
+  function onPositionError(err) {
+    let title = '定位失败';
+    let msg = '请检查 GPS / 位置权限';
+    switch (err.code) {
+      case 1: // PERMISSION_DENIED
+        title = '定位权限被拒绝';
+        msg = '请在浏览器设置中允许位置访问 (通常在地址栏左侧的锁形图标)。';
+        break;
+      case 2: // POSITION_UNAVAILABLE
+        title = '位置不可用';
+        msg = '设备无法获取当前位置, 请检查:\n• GPS / 定位服务是否开启\n• 室内可能信号弱, 移到窗边或室外\n• 关闭飞行模式';
+        break;
+      case 3: // TIMEOUT
+        title = '定位超时';
+        msg = '获取位置超过 15 秒未响应, 请检查网络/GPS 信号, 或点击"重试"。';
+        break;
+      default:
+        msg = '未知错误: ' + (err.message || err.code);
+    }
+    showLocateError(title, msg);
+    // 用户位置标记变灰
+    if (userMarker && userMarker._div) {
+      const icon = userMarker._div.querySelector('.user-marker-icon');
+      if (icon) icon.classList.add('failed');
+    }
+  }
+
+  function showLocateError(title, msg) {
+    const banner = $('#locateErrorBanner');
+    const titleEl = banner.querySelector('.locate-error-title');
+    const msgEl = $('#locateErrorMsg');
+    if (titleEl) titleEl.textContent = title;
+    if (msgEl) {
+      msgEl.textContent = msg;
+      msgEl.style.whiteSpace = 'pre-line';
+    }
+    banner.classList.remove('hidden');
+  }
+
+  function hideLocateError() {
+    $('#locateErrorBanner').classList.add('hidden');
   }
 
   function onPosition(pos) {
@@ -204,6 +265,15 @@
     const lng = pos.coords.longitude;
     const heading = (typeof pos.coords.heading === 'number' && !isNaN(pos.coords.heading)) ? pos.coords.heading : null;
     const accuracy = pos.coords.accuracy || 0;
+
+    // 第一次成功, 隐藏错误 banner, 解除 marker 灰显
+    if (userLatLng === null) {
+      hideLocateError();
+      if (userMarker && userMarker._div) {
+        const icon = userMarker._div.querySelector('.user-marker-icon');
+        if (icon) icon.classList.remove('failed');
+      }
+    }
 
     userLatLng = [lat, lng];
 

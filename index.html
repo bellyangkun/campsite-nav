@@ -23,6 +23,18 @@
     <button id="enableCompassBtn">启用指南针</button>
   </div>
 
+  <div id="locateErrorBanner" class="locate-error-banner hidden" role="alert">
+    <div class="locate-error-icon">📍⚠️</div>
+    <div class="locate-error-body">
+      <div class="locate-error-title">定位失败</div>
+      <div class="locate-error-msg" id="locateErrorMsg">正在尝试获取位置...</div>
+    </div>
+    <div class="locate-error-actions">
+      <button id="locateRetryBtn" class="locate-error-retry">重试</button>
+      <button id="locateDismissBtn" class="locate-error-dismiss">知道了</button>
+    </div>
+  </div>
+
   <div class="bottom-sheet">
     <label for="destSelect">选择活动地点</label>
     <select id="destSelect">
