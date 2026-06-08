@@ -2,6 +2,45 @@
   'use strict';
 
   const $ = (sel) => document.querySelector(sel);
+  const ADMIN_PASSWORD = '8888';
+  const AUTH_KEY = 'campsite_admin_authed';
+
+  // ===== 登录门 =====
+  function setupLoginGate() {
+    const gate = $('#loginGate');
+    const content = $('#adminContent');
+    const form = $('#loginForm');
+    const input = $('#loginPassword');
+    const error = $('#loginError');
+
+    // 已登录过, 直接放行
+    if (sessionStorage.getItem(AUTH_KEY) === '1') {
+      gate.classList.add('hidden');
+      content.style.display = '';
+      return;
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const pwd = input.value;
+      if (pwd === ADMIN_PASSWORD) {
+        sessionStorage.setItem(AUTH_KEY, '1');
+        gate.classList.add('hidden');
+        content.style.display = '';
+        init();  // 启动后台逻辑
+        // 触发 resize 让 BMap 重新计算容器尺寸
+        window.dispatchEvent(new Event('resize'));
+      } else {
+        error.classList.remove('hidden');
+        input.value = '';
+        input.focus();
+        setTimeout(() => error.classList.add('hidden'), 2000);
+      }
+    });
+
+    input.focus();
+  }
+
   let map;
   let pickMarker = null;
   let points = [];
@@ -339,10 +378,13 @@
     if (statusMsg) statusMsg.textContent = msg;
   }
 
+  // 启动: 先登录门
+  // - 已登录过 (sessionStorage 有标记): 直接放行 + 跑 init
+  // - 未登录: 等用户输入密码 + submit, 通过后 init
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', setupLoginGate);
   } else {
-    init();
+    setupLoginGate();
   }
 
   // 顶部状态条消息

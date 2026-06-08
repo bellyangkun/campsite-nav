@@ -467,3 +467,115 @@ tr:active { background: #f8f8f8; }
   opacity: 0.7;
   margin-left: 8px;
 }
+
+/* ===== 登录遮罩 ===== */
+.login-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 50%, #1e3a5f 100%);
+  padding: 20px;
+}
+
+.login-gate.hidden { display: none !important; }
+
+.login-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 40px 32px 28px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  text-align: center;
+}
+
+.login-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.login-title {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.login-sub {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.login-form input {
+  padding: 12px 14px;
+  font-size: 16px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  text-align: center;
+  letter-spacing: 4px;
+  font-family: inherit;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.login-form input:focus {
+  outline: none;
+  border-color: #2d5a87;
+  background: #fff;
+}
+
+.login-btn {
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #2d5a87, #1e3a5f);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.1s, box-shadow 0.2s;
+}
+
+.login-btn:hover { box-shadow: 0 4px 12px rgba(45, 90, 135, 0.4); }
+.login-btn:active { transform: translateY(1px); }
+
+.login-error {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 13px;
+  border-radius: 6px;
+  animation: shake 0.4s;
+}
+
+.login-error.hidden { display: none !important; }
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.login-back {
+  display: inline-block;
+  margin-top: 20px;
+  color: #64748b;
+  font-size: 13px;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.login-back:hover { color: #1e3a5f; }
