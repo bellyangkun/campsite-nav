@@ -18,8 +18,10 @@
    * @param {function} callback
    */
   function ready(callback) {
+    // 已经在
     if (typeof BMap !== 'undefined' && BMap.Map) {
-      callback();
+      // Safari 兼容性: 用 setTimeout 推到下一个 tick, 避免初始化时序问题
+      setTimeout(() => tryCallback(callback), 0);
       return;
     }
     // 轮询等待
@@ -29,13 +31,27 @@
       attempts++;
       if (typeof BMap !== 'undefined' && BMap.Map) {
         clearInterval(timer);
-        callback();
+        tryCallback(callback);
       } else if (attempts >= maxAttempts) {
         clearInterval(timer);
         console.error('[BaiduMap] 等待 BMap 加载超时 (10s)');
-        if (global.BaiduMap._onError) global.BaiduMap._onError('百度地图 JS API 加载超时, 请检查网络或 AK');
+        if (global.BaiduMap._onError) global.BaiduMap._onError('百度地图 JS API 加载超时, 请检查网络/AK. 但表单功能仍可用');
       }
     }, 100);
+  }
+
+  // 用 try/catch 包裹, 防止 BMap 内部抛错拖死调用方
+  function tryCallback(cb) {
+    try {
+      cb();
+    } catch (e) {
+      console.error('[BaiduMap] ready 回调异常:', e);
+      if (global.BaiduMap._onError) global.BaiduMap._onError('百度地图初始化失败: ' + e.message);
+    }
+  }
+
+  function isReady() {
+    return typeof BMap !== 'undefined' && !!BMap.Map;
   }
 
   function initBaiduMap(domId, opts) {

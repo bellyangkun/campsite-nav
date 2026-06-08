@@ -7,34 +7,49 @@
   let points = [];
 
   function init() {
-    // 首次渲染用 sync 数据 (localStorage 或默认), 后续 sync 完成后重新渲染
-    points = CampData.getPointsSync();
-    renderTable();
-    bindEvents();
-
-    // 百度地图 API 异步加载, 等就绪再 initMap
-    BaiduMap._onError = (msg) => {
-      const el = document.getElementById('pickMap');
-      if (el) el.innerHTML = '<div style="padding:20px;color:#c62828;background:#ffebee">⚠️ ' + msg + '</div>';
-    };
-    BaiduMap.ready(() => {
-      initMap();
-    });
-
-    // 监听服务器同步完成, 自动重新渲染 (新数据可能比 localStorage 新)
-    document.addEventListener('campsite-sync-done', (e) => {
-      console.log('[admin] sync 完成, 数据源:', e.detail.source);
+    try {
+      // 首次渲染用 sync 数据 (localStorage 或默认), 后续 sync 完成后重新渲染
       points = CampData.getPointsSync();
-      if (map) refreshMapMarkers();
       renderTable();
-      // 提示用户
-      const sourceLabel = { server: '☁️ 服务器', local: '💾 本地缓存', default: '🆕 默认' }[e.detail.source] || e.detail.source;
-      const status = $('#syncStatus');
-      if (status) {
-        status.textContent = `数据源: ${sourceLabel} (${points.length} 个活动点)`;
-        setTimeout(() => { status.textContent = ''; }, 3000);
-      }
-    });
+      bindEvents();
+
+      // 百度地图 API 异步加载, 等就绪再 initMap
+      BaiduMap._onError = (msg) => {
+        console.error('[admin] 地图错误:', msg);
+        const el = document.getElementById('pickMap');
+        if (el) el.innerHTML = '<div style="padding:20px;color:#c62828;background:#ffebee">⚠️ ' + msg + '<br><br><small>(表单功能仍可用, 添加活动点请直接填坐标)</small></div>';
+      };
+      BaiduMap.ready(() => {
+        try {
+          initMap();
+        } catch (e) {
+          console.error('[admin] initMap 失败:', e);
+          BaiduMap._onError('地图初始化失败: ' + e.message);
+        }
+      });
+
+      // 监听服务器同步完成, 自动重新渲染 (新数据可能比 localStorage 新)
+      document.addEventListener('campsite-sync-done', (e) => {
+        console.log('[admin] sync 完成, 数据源:', e.detail.source);
+        points = CampData.getPointsSync();
+        if (map) try { refreshMapMarkers(); } catch (er) { console.error(er); }
+        renderTable();
+        // 提示用户
+        const sourceLabel = { server: '☁️ 服务器', local: '💾 本地缓存', default: '🆕 默认' }[e.detail.source] || e.detail.source;
+        const status = $('#syncStatus');
+        if (status) {
+          status.textContent = `数据源: ${sourceLabel} (${points.length} 个活动点)`;
+          setTimeout(() => { status.textContent = ''; }, 3000);
+        }
+      });
+    } catch (e) {
+      console.error('[admin] init 失败:', e);
+      // 兜底: 至少让用户能看到错误 + 表单仍可用
+      const banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:10px;background:#ffcdd2;color:#c62828;z-index:99999;text-align:center';
+      banner.textContent = '⚠️ 初始化失败: ' + e.message;
+      document.body.prepend(banner);
+    }
   }
 
   function initMap() {
