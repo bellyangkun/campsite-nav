@@ -231,15 +231,19 @@
       </div>`;
       const overlay = BaiduMap.addDivMarker(map, p.lng, p.lat, html, { x: 16, y: 16 });
       mapOverlays[p.id] = overlay;
-      // BMap 没有原生 popup, 改用 click 事件
-      overlay._div.addEventListener('click', () => {
-        const info = new BMap.InfoWindow(
-          `<b>${CampData.escapeHtml(p.name)}</b><br/>${CampData.escapeHtml(p.description || '')}<br/><small>${meta.label}</small>`,
-          { width: 220, height: 80 }
-        );
-        map.openInfoWindow(info, new BMap.Point(
-          ...Wgs84ToBd09.wgs84ToBd09(p.lng, p.lat)
-        ));
+      // 点击标记: 选为当前目标 (同步下拉框 + 触发路由 + 滚动到底部面板)
+      overlay._div.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sel = $('#destSelect');
+        if (sel) {
+          sel.value = p.id;
+          onDestChange();
+        }
+        // 平滑滚动到底部面板 (移动端体验)
+        const sheet = document.querySelector('.bottom-sheet');
+        if (sheet && window.innerWidth <= 600) {
+          sheet.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
       });
     });
   }
