@@ -21,7 +21,11 @@
   const ADMIN_TOKEN = 'campsite-nav-2026';  // 仅 admin.html 写入时使用
 
   // 是否在 admin 上下文 (通过 document.body dataset 判断)
-  const IS_ADMIN = document.body && document.body.dataset.role === 'admin';
+  // 延迟到 DOM ready 后再读, 避免 body 还未就绪
+  let IS_ADMIN = false;
+  if (document.body && document.body.dataset) {
+    IS_ADMIN = document.body.dataset.role === 'admin';
+  }
 
   const DEFAULT_POINTS = [
     { id: 'p1', name: '度假村主入口', lat: 31.481527, lng: 121.286954, description: '霜竹公路518号主入口，停车与签到处', type: 'entrance' },
@@ -54,8 +58,8 @@
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
-      if (json.code !== 0 || !Array.isArray(json.data && json.data.points)) {
-        throw new Error('Invalid response');
+      if (json.code !== 0 || !json.data || !Array.isArray(json.data.points)) {
+        throw new Error('Invalid response: ' + JSON.stringify(json).slice(0, 200));
       }
       return { points: json.data.points, updatedAt: Date.now() };
     } catch (e) {
