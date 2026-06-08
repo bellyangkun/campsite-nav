@@ -18,6 +18,28 @@
     </div>
   </div>
 
+  <!-- 搜索 + 类型过滤 -->
+  <div class="search-bar">
+    <div class="search-input-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="search" id="searchInput" placeholder="搜索活动点..." autocomplete="off" />
+      <button id="searchClear" class="search-clear hidden" title="清空">×</button>
+    </div>
+    <div class="type-chips" id="typeChips">
+      <button class="chip active" data-type="all">全部</button>
+      <button class="chip" data-type="entrance">🚪 入口</button>
+      <button class="chip" data-type="activity">⛺ 活动</button>
+      <button class="chip" data-type="service">🛒 服务</button>
+      <button class="chip" data-type="other">📍 其他</button>
+    </div>
+  </div>
+
+  <!-- 加载进度 -->
+  <div id="loadingIndicator" class="loading-indicator">
+    <div class="loading-spinner"></div>
+    <span>加载中...</span>
+  </div>
+
   <div id="permBanner" class="perm-banner hidden">
     <span>需要授权方向传感器以提供更准确的行进方向</span>
     <button id="enableCompassBtn">启用指南针</button>
@@ -36,27 +58,50 @@
   </div>
 
   <div class="bottom-sheet">
-    <label for="destSelect">选择活动地点</label>
-    <select id="destSelect">
-      <option value="">-- 请选择 --</option>
-    </select>
+    <div class="dest-row">
+      <label for="destSelect">目标地点</label>
+      <select id="destSelect">
+        <option value="">-- 请选择 --</option>
+      </select>
+    </div>
 
     <div id="routeInfo" class="route-info hidden">
-      <div class="info-row">
-        <span class="label">直线距离</span>
-        <span id="distText" class="value">-</span>
+      <!-- 主信息: 距离 + 时间 -->
+      <div class="route-main">
+        <div class="route-stat">
+          <div class="stat-num" id="distText">-</div>
+          <div class="stat-unit" id="distUnit">距离</div>
+        </div>
+        <div class="route-divider"></div>
+        <div class="route-stat">
+          <div class="stat-num" id="timeText">-</div>
+          <div class="stat-unit">步行约</div>
+        </div>
       </div>
-      <div class="info-row">
-        <span class="label">目标方向</span>
-        <span id="dirText" class="value">-</span>
-      </div>
-      <div class="info-row">
-        <span class="label">当前朝向</span>
-        <span id="headText" class="value">-</span>
-      </div>
-      <div class="info-row">
-        <span class="label">移动方向</span>
-        <span id="moveText" class="value">-</span>
+
+      <!-- 方向指示 -->
+      <div class="route-direction">
+        <div class="dir-card dir-target">
+          <div class="dir-icon" id="dirIcon">➤</div>
+          <div class="dir-info">
+            <div class="dir-label">目标方向</div>
+            <div class="dir-value" id="dirText">-</div>
+          </div>
+        </div>
+        <div class="dir-card">
+          <div class="dir-icon" id="headIcon">🧭</div>
+          <div class="dir-info">
+            <div class="dir-label">当前朝向</div>
+            <div class="dir-value" id="headText">-</div>
+          </div>
+        </div>
+        <div class="dir-card">
+          <div class="dir-icon" id="moveIcon">🚶</div>
+          <div class="dir-info">
+            <div class="dir-label">移动方向</div>
+            <div class="dir-value" id="moveText">-</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

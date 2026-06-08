@@ -33,7 +33,34 @@
     return dirs[Math.round(deg / 45)];
   }
 
+  // 中文方向 + 箭头 icon (用于 dir-icon)
+  function cardinalWithIcon(deg) {
+    const icon = ['⬆', '↗', '➤', '↘', '⬇', '↙', '⬅', '↖'][Math.round(deg / 45) % 8];
+    const dir = cardinal(deg);
+    return { icon, dir, text: `${dir} ${Math.round(deg)}°` };
+  }
+
+  // 距离 + 单位 (用于 stat-num + stat-unit)
+  function formatDistParts(m) {
+    if (m == null || isNaN(m)) return { num: '-', unit: '' };
+    if (m < 1000) return { num: Math.round(m), unit: '米' };
+    if (m < 100) return { num: (m / 1000).toFixed(2), unit: '公里' };
+    return { num: Math.round(m / 1000), unit: '公里' };
+  }
+
+  // 步行时间估算 (按 5km/h = 83米/分)
+  function formatWalkTime(m) {
+    if (m == null || isNaN(m)) return '-';
+    const min = m / 83;  // 5 km/h
+    if (min < 1) return '< 1 分钟';
+    if (min < 60) return Math.round(min) + ' 分钟';
+    const h = Math.floor(min / 60);
+    const m2 = Math.round(min % 60);
+    return h + ' 小时' + (m2 > 0 ? ' ' + m2 + ' 分' : '');
+  }
+
   function formatDist(m) {
+    if (m == null || isNaN(m)) return '-';
     if (m < 1000) return Math.round(m) + ' 米';
     return (m / 1000).toFixed(2) + ' 公里';
   }
@@ -44,7 +71,8 @@
   let userArrowEl = null;
   let routeLine = null;
   let destMarker = null;
-  let points = [];
+  let points = [];           // 全部活动点
+  let visiblePoints = [];    // 当前可见（按搜索+类型过滤后）
   let userLatLng = null;
   let lastPos = null;
   let lastMoveTime = 0;
@@ -55,71 +83,176 @@
   let watchId = null;
   let orientationActive = false;
   let compassHeading = null;
+  let searchKeyword = '';
+  let activeTypeFilter = 'all';
+  let mapOverlays = {};      // { pointId: overlay } 用于显隐
 
   // ===== 初始化 =====
   function init() {
-    // 首次渲染用 sync 数据 (localStorage 或默认)
-    points = CampData.getPointsSync();
-    // 默认中心用第一个点的真实位置 (WGS-84)
-    const first = points[0] || { lat: 31.485759, lng: 121.297886 };
+    try {
+      showLoading();
+      // 首次渲染用 sync 数据 (localStorage 或默认)
+      points = CampData.getPointsSync();
+      // 默认中心用第一个点的真实位置 (WGS-84)
+      const first = points[0] || { lat: 31.485759, lng: 121.297886 };
 
-    // 绑定 UI 事件 (不依赖地图)
-    $('#destSelect').addEventListener('change', onDestChange);
-    $('#locateBtn').addEventListener('click', locateMe);
-    $('#enableCompassBtn').addEventListener('click', requestOrientation);
+      // 绑定 UI 事件 (不依赖地图)
+      $('#destSelect').addEventListener('change', onDestChange);
+      $('#locateBtn').addEventListener('click', locateMe);
+      $('#enableCompassBtn').addEventListener('click', requestOrientation);
 
-    // 定位失败 banner 按钮
-    const retryBtn = $('#locateRetryBtn');
-    const dismissBtn = $('#locateDismissBtn');
-    if (retryBtn) retryBtn.addEventListener('click', () => { hideLocateError(); startGeolocation(); });
-    if (dismissBtn) dismissBtn.addEventListener('click', hideLocateError);
+      // 定位失败 banner 按钮
+      const retryBtn = $('#locateRetryBtn');
+      const dismissBtn = $('#locateDismissBtn');
+      if (retryBtn) retryBtn.addEventListener('click', () => { hideLocateError(); startGeolocation(); });
+      if (dismissBtn) dismissBtn.addEventListener('click', hideLocateError);
 
-    populateSelect();
+      populateSelect();
 
-    // 百度地图 API 异步加载, 等就绪再 init
-    BaiduMap._onError = (msg) => {
-      const el = document.getElementById('map');
-      if (el) el.innerHTML = '<div style="padding:20px;color:#fff;background:#c62828">⚠️ ' + msg + '</div>';
-    };
-    BaiduMap.ready(() => {
-      map = BaiduMap.initBaiduMap('map', {
-        lng: first.lng,
-        lat: first.lat,
-        zoom: 15,
-        enableScrollWheelZoom: true
-      });
-      renderPoints();
-      createUserMarker(first.lat, first.lng);
-    });
+      // 搜索 + 类型过滤
+      setupSearchAndFilter();
 
-    startGeolocation();
-    setupOrientation();
-
-    // 服务器同步完成后, 如果新数据有变化则重渲染
-    document.addEventListener('campsite-sync-done', (e) => {
-      const newPoints = CampData.getPointsSync();
-      if (newPoints.length !== points.length || newPoints.some((p, i) => p.id !== (points[i] && points[i].id))) {
-        console.log('[app] 服务器数据有变化, 重新渲染');
-        points = newPoints;
-        populateSelect();
-        if (map) {
-          BaiduMap.clearOverlays(map);
+      // 百度地图 API 异步加载, 等就绪再 init
+      BaiduMap._onError = (msg) => {
+        console.error('[app] 地图错误:', msg);
+        const el = document.getElementById('map');
+        if (el) el.innerHTML = '<div style="padding:20px;color:#fff;background:#c62828">⚠️ ' + msg + '</div>';
+        hideLoading();
+      };
+      BaiduMap.ready(() => {
+        try {
+          map = BaiduMap.initBaiduMap('map', {
+            lng: first.lng,
+            lat: first.lat,
+            zoom: 15,
+            enableScrollWheelZoom: true
+          });
           renderPoints();
+          createUserMarker(first.lat, first.lng);
+          // 智能调度: fitBounds 全部活动点 (不用 flyTo 单一目标)
+          fitBoundsToAllPoints();
+          hideLoading();
+        } catch (e) {
+          console.error('[app] initMap 失败:', e);
+          BaiduMap._onError('地图初始化失败: ' + e.message);
+          hideLoading();
         }
-      }
+      });
+
+      startGeolocation();
+      setupOrientation();
+
+      // 服务器同步完成后, 如果新数据有变化则重渲染
+      document.addEventListener('campsite-sync-done', (e) => {
+        const newPoints = CampData.getPointsSync();
+        if (newPoints.length !== points.length || newPoints.some((p, i) => p.id !== (points[i] && points[i].id))) {
+          console.log('[app] 服务器数据有变化, 重新渲染');
+          points = newPoints;
+          populateSelect();
+          if (map) {
+            BaiduMap.clearOverlays(map);
+            mapOverlays = {};
+            renderPoints();
+            fitBoundsToAllPoints();
+          }
+        }
+      });
+    } catch (e) {
+      console.error('[app] init 失败:', e);
+      hideLoading();
+    }
+  }
+
+  function showLoading() {
+    const el = $('#loadingIndicator');
+    if (el) el.classList.remove('hidden');
+  }
+  function hideLoading() {
+    const el = $('#loadingIndicator');
+    if (el) el.classList.add('hidden');
+  }
+
+  // 显示在地图上
+  function fitBoundsToAllPoints() {
+    if (!map) return;
+    if (visiblePoints.length === 0) return;
+    try {
+      const pts = visiblePoints.map(p => {
+        const [bdLng, bdLat] = Wgs84ToBd09.wgs84ToBd09(p.lng, p.lat);
+        return new BMap.Point(bdLng, bdLat);
+      });
+      const viewport = map.getViewport(pts);
+      map.setViewport(viewport, { margins: [80, 60, 200, 60] });  // 上右下左
+    } catch (e) {
+      console.warn('fitBounds 失败', e);
+    }
+  }
+
+  // ===== 搜索 + 类型过滤 =====
+  function setupSearchAndFilter() {
+    const searchInput = $('#searchInput');
+    const searchClear = $('#searchClear');
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        searchKeyword = searchInput.value.trim().toLowerCase();
+        if (searchClear) searchClear.classList.toggle('hidden', !searchKeyword);
+        applyFilters();
+      });
+    }
+    if (searchClear) {
+      searchClear.addEventListener('click', () => {
+        if (searchInput) { searchInput.value = ''; searchInput.focus(); }
+        searchKeyword = '';
+        searchClear.classList.add('hidden');
+        applyFilters();
+      });
+    }
+    const chips = document.querySelectorAll('#typeChips .chip');
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        chips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        activeTypeFilter = chip.dataset.type;
+        applyFilters();
+      });
     });
   }
 
+  function applyFilters() {
+    // 过滤点
+    visiblePoints = points.filter(p => {
+      if (activeTypeFilter !== 'all' && p.type !== activeTypeFilter) return false;
+      if (searchKeyword) {
+        const name = (p.name || '').toLowerCase();
+        const desc = (p.description || '').toLowerCase();
+        if (!name.includes(searchKeyword) && !desc.includes(searchKeyword)) return false;
+      }
+      return true;
+    });
+    // 更新地图标记显隐
+    if (map) {
+      Object.keys(mapOverlays).forEach(id => {
+        const isVisible = visiblePoints.some(p => p.id === id);
+        try { mapOverlays[id]._div.style.display = isVisible ? '' : 'none'; } catch (e) {}
+      });
+    }
+    // 更新下拉框
+    populateSelect();
+  }
+
   function renderPoints() {
+    if (!map) return;
+    visiblePoints = points.slice();  // 默认全部可见
     points.forEach((p) => {
       const meta = CampData.getTypeMeta(p.type);
       const html = `<div class="camp-marker-icon" style="color:${meta.color};border-color:${meta.color}">${meta.icon}</div>`;
       const overlay = BaiduMap.addDivMarker(map, p.lng, p.lat, html, { x: 16, y: 16 });
+      mapOverlays[p.id] = overlay;
       // BMap 没有原生 popup, 改用 click 事件
       overlay._div.addEventListener('click', () => {
         const info = new BMap.InfoWindow(
           `<b>${CampData.escapeHtml(p.name)}</b><br/>${CampData.escapeHtml(p.description || '')}<br/><small>${meta.label}</small>`,
-          { width: 200, height: 80 }
+          { width: 220, height: 80 }
         );
         map.openInfoWindow(info, new BMap.Point(
           ...Wgs84ToBd09.wgs84ToBd09(p.lng, p.lat)
@@ -175,16 +308,25 @@
         { lng: dest.lng, lat: dest.lat },
         { strokeColor: '#2196F3', strokeWeight: 5, strokeOpacity: 0.85, strokeStyle: 'dashed' }
       );
-      // fitBounds
-      const [bdLng1, bdLat1] = Wgs84ToBd09.wgs84ToBd09(userLatLng[1], userLatLng[0]);
-      const [bdLng2, bdLat2] = Wgs84ToBd09.wgs84ToBd09(dest.lng, dest.lat);
-      const bsw = new BMap.Bounds(
-        new BMap.Point(Math.min(bdLng1, bdLng2), Math.min(bdLat1, bdLat2)),
-        new BMap.Point(Math.max(bdLng1, bdLng2), Math.max(bdLat1, bdLat2))
-      );
-      map.setViewport({ center: bsw.getCenter(), zoom: 17 });
+      // fitBounds 包含用户 + 目标 (智能调度, 让用户看全路线)
+      try {
+        const [bdLng1, bdLat1] = Wgs84ToBd09.wgs84ToBd09(userLatLng[1], userLatLng[0]);
+        const [bdLng2, bdLat2] = Wgs84ToBd09.wgs84ToBd09(dest.lng, dest.lat);
+        const pts = [new BMap.Point(bdLng1, bdLat1), new BMap.Point(bdLng2, bdLat2)];
+        const viewport = map.getViewport(pts);
+        map.setViewport(viewport, { margins: [80, 60, 200, 60] });
+      } catch (e) { console.warn('fitBounds 失败', e); }
     } else {
-      BaiduMap.setCenter(map, dest.lng, dest.lat, 17);
+      // 没有用户位置, fitBounds 度假村中心 + 目标
+      try {
+        const [bdLng1, bdLat1] = Wgs84ToBd09.wgs84ToBd09(31.481527, 121.286954);
+        const [bdLng2, bdLat2] = Wgs84ToBd09.wgs84ToBd09(dest.lng, dest.lat);
+        const pts = [new BMap.Point(bdLng1, bdLat1), new BMap.Point(bdLng2, bdLat2)];
+        const viewport = map.getViewport(pts);
+        map.setViewport(viewport, { margins: [80, 60, 200, 60] });
+      } catch (e) {
+        BaiduMap.setCenter(map, dest.lng, dest.lat, 17);
+      }
     }
 
     $('#routeInfo').classList.remove('hidden');
@@ -194,25 +336,49 @@
   function updateRouteInfo() {
     const dest = getSelectedPoint();
     if (!dest) return;
+
+    // 距离 + 步行时间
+    const distTextEl = $('#distText');
+    const distUnitEl = $('#distUnit');
+    const timeTextEl = $('#timeText');
     if (userLatLng) {
       const d = haversine(userLatLng[0], userLatLng[1], dest.lat, dest.lng);
-      const b = bearing(userLatLng[0], userLatLng[1], dest.lat, dest.lng);
-      $('#distText').textContent = formatDist(d);
-      $('#dirText').textContent = cardinal(b) + ' (' + Math.round(b) + '°)';
+      const distParts = formatDistParts(d);
+      distTextEl.textContent = distParts.num;
+      if (distUnitEl) distUnitEl.textContent = distParts.unit;
+      if (timeTextEl) timeTextEl.textContent = formatWalkTime(d);
     } else {
-      $('#distText').textContent = '定位中…';
-      $('#dirText').textContent = '定位中…';
+      distTextEl.textContent = '—';
+      if (distUnitEl) distUnitEl.textContent = '定位中';
+      if (timeTextEl) timeTextEl.textContent = '—';
     }
 
-    if (currentHeading != null) {
-      $('#headText').textContent = cardinal(currentHeading) + ' (' + Math.round(currentHeading) + '°)';
+    // 目标方向 (高亮卡片)
+    const dirIconEl = $('#dirIcon');
+    const dirTextEl = $('#dirText');
+    if (userLatLng) {
+      const b = bearing(userLatLng[0], userLatLng[1], dest.lat, dest.lng);
+      const ci = cardinalWithIcon(b);
+      if (dirIconEl) dirIconEl.textContent = ci.icon;
+      if (dirTextEl) dirTextEl.textContent = ci.text;
     } else {
-      $('#headText').textContent = '计算中…';
+      if (dirIconEl) dirIconEl.textContent = '➤';
+      if (dirTextEl) dirTextEl.textContent = '定位中…';
     }
-    if (movementHeading != null) {
-      $('#moveText').textContent = cardinal(movementHeading) + ' (' + Math.round(movementHeading) + '°)';
+
+    // 当前朝向
+    const headTextEl = $('#headText');
+    if (currentHeading != null) {
+      headTextEl.textContent = cardinalWithIcon(currentHeading).text;
     } else {
-      $('#moveText').textContent = '静止';
+      headTextEl.textContent = '计算中…';
+    }
+    // 移动方向
+    const moveTextEl = $('#moveText');
+    if (movementHeading != null) {
+      moveTextEl.textContent = cardinalWithIcon(movementHeading).text;
+    } else {
+      moveTextEl.textContent = '静止';
     }
   }
 
