@@ -224,7 +224,11 @@
     visiblePoints = points.slice();  // 默认全部可见
     points.forEach((p) => {
       const meta = CampData.getTypeMeta(p.type);
-      const html = `<div class="camp-marker-icon" style="color:${meta.color};border-color:${meta.color}">${meta.icon}</div>`;
+      // 标记: emoji + 名称标签
+      const html = `<div class="camp-marker">
+        <div class="camp-marker-icon" style="color:${meta.color};border-color:${meta.color}">${meta.icon}</div>
+        <div class="camp-marker-label" style="color:${meta.color}">${CampData.escapeHtml(p.name)}</div>
+      </div>`;
       const overlay = BaiduMap.addDivMarker(map, p.lng, p.lat, html, { x: 16, y: 16 });
       mapOverlays[p.id] = overlay;
       // BMap 没有原生 popup, 改用 click 事件
@@ -277,8 +281,11 @@
       return;
     }
 
-    // 目标标记高亮
-    const destHtml = '<div class="camp-marker-icon" style="color:#E91E63;border-color:#E91E63;font-size:26px;width:38px!important;height:38px!important">🏁</div>';
+    // 目标标记高亮 (含 label)
+    const destHtml = `<div class="camp-marker camp-marker-target">
+      <div class="camp-marker-icon" style="color:#E91E63;border-color:#E91E63;font-size:26px;width:38px!important;height:38px!important">🏁</div>
+      <div class="camp-marker-label" style="color:#E91E63;font-weight:700">${CampData.escapeHtml(dest.name)}</div>
+    </div>`;
     destMarker = BaiduMap.addDivMarker(map, dest.lng, dest.lat, destHtml, { x: 19, y: 19 });
 
     if (userLatLng) {
