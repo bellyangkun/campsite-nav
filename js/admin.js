@@ -154,6 +154,12 @@
       }
     });
 
+    // 使用我的位置按钮
+    const useLocBtn = $('#useMyLocationBtn');
+    if (useLocBtn) {
+      useLocBtn.addEventListener('click', useMyLocation);
+    }
+
     $('#resetBtn').addEventListener('click', () => {
       if (!confirm('恢复为默认 6 活动点？现有自定义数据会丢失。')) return;
       points = CampData.resetToDefault();
@@ -189,6 +195,91 @@
       };
       reader.readAsText(file);
     });
+  }
+
+  // ===== 使用我当前位置 =====
+  function useMyLocation() {
+    const btn = $('#useMyLocationBtn');
+    const status = $('#locateStatus');
+    const statusMsg = status.querySelector('.locate-status-msg');
+    const statusIcon = status.querySelector('.locate-status-icon');
+
+    if (!navigator.geolocation) {
+      setLocateStatus('error', '❌', '浏览器不支持定位 (没有 Geolocation API)');
+      return;
+    }
+
+    // 进入加载状态
+    btn.disabled = true;
+    setLocateStatus('loading', '⏳', '正在获取位置, 请在浏览器弹窗中授权...');
+
+    const timer = setTimeout(() => {
+      btn.disabled = false;
+      setLocateStatus('error', '⏱️', '定位超时, 请到室外或窗边重试');
+    }, 20000);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        clearTimeout(timer);
+        btn.disabled = false;
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const accuracy = pos.coords.accuracy; // 米
+
+        // 填入表单
+        const latInput = $('#latInput');
+        const lngInput = $('#lngInput');
+        if (latInput) latInput.value = lat.toFixed(6);
+        if (lngInput) lngInput.value = lng.toFixed(6);
+
+        // 表单视觉高亮一下
+        [latInput, lngInput].forEach(el => {
+          if (el) {
+            el.style.background = '#fff3e0';
+            setTimeout(() => { el.style.background = ''; }, 1500);
+          }
+        });
+
+        // 在地图上预览当前位置
+        if (pickMarker) map.removeOverlay(pickMarker);
+        const html = '<div class="pick-marker">📍</div>';
+        pickMarker = BaiduMap.addDivMarker(map, lng, lat, html, { x: 12, y: 24 });
+        // 居中到该点
+        BaiduMap.setCenter(map, lng, lat, 17);
+
+        // 状态显示
+        let accText = '';
+        if (typeof accuracy === 'number' && accuracy < 1000) {
+          accText = ` (精度 ±${Math.round(accuracy)}m)`;
+        } else if (typeof accuracy === 'number') {
+          accText = ` (精度 ±${(accuracy/1000).toFixed(1)}km, 建议在开阔地重试)`;
+        }
+        setLocateStatus('success', '✅', `已填入坐标${accText}`);
+      },
+      (err) => {
+        clearTimeout(timer);
+        btn.disabled = false;
+        let msg = '未知错误';
+        switch (err.code) {
+          case 1: msg = '权限被拒绝, 请在浏览器设置中允许位置访问'; break;
+          case 2: msg = '位置不可用, 请检查 GPS / 移到窗边或室外'; break;
+          case 3: msg = '定位超时, 请重试'; break;
+          default: msg = err.message || ('code=' + err.code);
+        }
+        setLocateStatus('error', '❌', msg);
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 18000 }
+    );
+  }
+
+  function setLocateStatus(type, icon, msg) {
+    const status = $('#locateStatus');
+    const statusMsg = status.querySelector('.locate-status-msg');
+    const statusIcon = status.querySelector('.locate-status-icon');
+    if (!status) return;
+    status.className = 'locate-status ' + type;
+    if (statusIcon) statusIcon.textContent = icon;
+    if (statusMsg) statusMsg.textContent = msg;
   }
 
   if (document.readyState === 'loading') {

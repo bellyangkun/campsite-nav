@@ -28,8 +28,17 @@
           </select>
         </div>
         <div class="form-row">
-          <input type="number" step="any" name="lat" placeholder="纬度 *" required />
-          <input type="number" step="any" name="lng" placeholder="经度 *" required />
+          <input type="number" step="any" name="lat" placeholder="纬度 *" required id="latInput" />
+          <input type="number" step="any" name="lng" placeholder="经度 *" required id="lngInput" />
+          <button type="button" id="useMyLocationBtn" class="btn" title="使用我当前位置">
+            📍 使用我的位置
+          </button>
+        </div>
+        <div class="form-row locate-status-row">
+          <div id="locateStatus" class="locate-status hidden">
+            <span class="locate-status-icon">⏳</span>
+            <span class="locate-status-msg">正在获取位置...</span>
+          </div>
         </div>
         <div class="form-row">
           <textarea name="description" placeholder="描述（可选）"></textarea>
