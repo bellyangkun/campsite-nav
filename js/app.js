@@ -541,13 +541,19 @@
       origin = `${oLat},${oLng}`;
     }
 
-    // H5 URL (Web 端)
-    // 关键: 不带 from, 让百度用"我的位置"按钮 (App 自动定位)
-    // region 参数帮助百度定位城市
-    const h5Url = `https://map.baidu.com/dir/?mode=${mode}` +
-      `&destination=${destCoord}&destination_name=${destName}` +
-      `&region=上海&coord_type=bd09ll&output=html` +
-      (origin ? `&origin=${origin}&origin_name=我的位置` : '');
+    // 百度 direction API 正确格式:
+    //   URL: http://api.map.baidu.com/direction
+    //   origin/destination: latlng:LAT,LNG|name:NAME  (lat,lng 顺序!)
+    //   output=html 必选 (web 端展示结果)
+    //   region 城市名
+    //   mode: walking|driving|transit|riding
+    let h5Url = `http://api.map.baidu.com/direction?` +
+      `destination=latlng:${destCoord}|name:${destName}` +
+      `&mode=${mode}` +
+      `&region=上海&output=html&src=webapp.lurecamp1.nav`;
+    if (origin) {
+      h5Url += `&origin=latlng:${origin}|name:我的位置`;
+    }
 
     if (isWeixin()) {
       // 微信内: 弹模态 + 一键复制
@@ -556,9 +562,9 @@
       // 普通手机: iframe scheme 唤 App
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       if (isMobile) {
-        // baidumap:// 唤起 App 步行/驾车
-        const appScheme = `baidumap://map/direction?destination=${destCoord}&destination_name=${destName}&mode=${mode}&coord_type=bd09ll&src=webkit|baidumap` +
-          (origin ? `&origin=${origin}&origin_name=${encodeURIComponent('我的位置')}` : '');
+        // baidumap:// 唤起 App (lat,lng 格式)
+        const appScheme = `baidumap://map/direction?destination=latlng:${destCoord}|name:${destName}&mode=${mode}&coord_type=bd09ll&src=webkit|baidumap` +
+          (origin ? `&origin=latlng:${origin}|name:${encodeURIComponent('我的位置')}` : '');
         const iframe = document.createElement('iframe');
         iframe.style.display = 'none';
         iframe.src = appScheme;
