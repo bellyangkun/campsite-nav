@@ -6,7 +6,7 @@ html, body {
   height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: #333;
-  background: #f5f5f5;
+  background: #fafaf7;
   overscroll-behavior: none;
 }
 #map {
@@ -431,7 +431,7 @@ tr:active { background: #f8f8f8; }
   padding: 6px 10px;
   border-radius: 4px;
   font-size: 13px;
-  background: #f5f5f5;
+  background: #fafaf7;
   color: #666;
   width: 100%;
   transition: all 0.2s;
@@ -476,7 +476,7 @@ tr:active { background: #f8f8f8; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 50%, #1e3a5f 100%);
+  background: linear-gradient(135deg, #2e7d32 0%, #43a047 50%, #2e7d32 100%);
   padding: 20px;
 }
 
@@ -531,7 +531,7 @@ tr:active { background: #f8f8f8; }
 
 .login-form input:focus {
   outline: none;
-  border-color: #2d5a87;
+  border-color: #2e7d32;
   background: #fff;
 }
 
@@ -540,7 +540,7 @@ tr:active { background: #f8f8f8; }
   font-size: 15px;
   font-weight: 600;
   color: #fff;
-  background: linear-gradient(135deg, #2d5a87, #1e3a5f);
+  background: linear-gradient(135deg, #2e7d32, #1e3a5f);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -595,7 +595,7 @@ tr:active { background: #f8f8f8; }
 .dest-top label {
   font-size: 14px;
   font-weight: 600;
-  color: #2d5a87;
+  color: #2e7d32;
   white-space: nowrap;
   margin-bottom: 0;
 }
@@ -640,7 +640,7 @@ tr:active { background: #f8f8f8; }
 .chip {
   flex-shrink: 0;
   background: rgba(255,255,255,0.95);
-  border: 1.5px solid #e0e0e0;
+  border: 1.5px solid #eceff1;
   border-radius: 16px;
   padding: 6px 12px;
   font-size: 12px;
@@ -653,9 +653,9 @@ tr:active { background: #f8f8f8; }
 }
 
 .chip.active {
-  background: #2d5a87;
+  background: #2e7d32;
   color: #fff;
-  border-color: #2d5a87;
+  border-color: #2e7d32;
 }
 
 /* ===== 加载进度 ===== */
@@ -681,8 +681,8 @@ tr:active { background: #f8f8f8; }
 .loading-spinner {
   width: 18px;
   height: 18px;
-  border: 2.5px solid #e0e0e0;
-  border-top-color: #2d5a87;
+  border: 2.5px solid #eceff1;
+  border-top-color: #2e7d32;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -715,7 +715,7 @@ tr:active { background: #f8f8f8; }
 .stat-num {
   font-size: 28px;
   font-weight: 700;
-  color: #2d5a87;
+  color: #2e7d32;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
@@ -731,7 +731,7 @@ tr:active { background: #f8f8f8; }
 .route-divider {
   width: 1px;
   height: 40px;
-  background: #e0e0e0;
+  background: #eceff1;
 }
 
 /* 方向卡片 */
@@ -754,11 +754,11 @@ tr:active { background: #f8f8f8; }
 
 .dir-card.dir-target {
   background: #e3f2fd;
-  border-left-color: #2d5a87;
+  border-left-color: #2e7d32;
 }
 
 .dir-card.dir-target .dir-icon {
-  color: #2d5a87;
+  color: #2e7d32;
   font-size: 28px;
 }
 
@@ -793,7 +793,7 @@ tr:active { background: #f8f8f8; }
   width: 100%;
   margin: 12px 0;
   padding: 12px 16px;
-  background: linear-gradient(135deg, #4a90e2, #2d5a87);
+  background: linear-gradient(135deg, #ff7043, #e64a19);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -859,8 +859,8 @@ tr:active { background: #f8f8f8; }
 
 /* ===== 我的状态卡 (常驻) ===== */
 .my-status-card {
-  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
-  border: 1px solid #90caf9;
+  background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+  border: 1px solid #a5d6a7;
   border-radius: 10px;
   padding: 10px 14px;
   margin-bottom: 12px;
@@ -885,14 +885,14 @@ tr:active { background: #f8f8f8; }
 
 .my-status-label {
   font-size: 11px;
-  color: #1565c0;
+  color: #1b5e20;
   font-weight: 500;
   margin-bottom: 2px;
 }
 
 .my-status-value {
   font-size: 14px;
-  color: #0d47a1;
+  color: #1b5e20;
   font-weight: 600;
   line-height: 1.3;
 }
@@ -903,11 +903,11 @@ tr:active { background: #f8f8f8; }
 }
 
 .my-status-arrow .my-status-label {
-  color: #6a1b9a;
+  color: #e65100;
 }
 
 .my-status-arrow .my-status-value {
-  color: #4a148c;
+  color: #bf360c;
   font-size: 16px;
 }
 
@@ -1001,4 +1001,240 @@ tr:active { background: #f8f8f8; }
 body.fullscreen .top-bar,
 body.fullscreen .search-bar {
   display: none;
+}
+
+/* ===== 全局美化增强 (v0.3) ===== */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+/* 顶部栏玻璃效果 */
+.top-bar {
+  background: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.06) !important;
+}
+
+.top-bar h1 {
+  background: linear-gradient(135deg, #1b5e20, #43a047);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 搜索栏/类型 chip 玻璃化 */
+.search-bar {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  padding: 10px 12px !important;
+  border-radius: 16px !important;
+  margin: 8px 12px 0 !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06) !important;
+}
+
+.search-input-wrap, .dest-top {
+  background: #fff !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+}
+
+.chip {
+  background: #fff !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+  transition: all 0.2s;
+}
+
+.chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.12) !important;
+}
+
+.chip.active {
+  background: linear-gradient(135deg, #2e7d32, #43a047) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(46,125,50,0.3) !important;
+}
+
+/* 底部面板卡片化 */
+.bottom-sheet {
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid rgba(46, 125, 50, 0.15) !important;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.08) !important;
+  border-radius: 20px 20px 0 0 !important;
+}
+
+.sheet-handle-icon {
+  font-size: 16px !important;
+  color: #2e7d32 !important;
+  font-weight: 700;
+}
+
+/* 我的状态卡美化 */
+.my-status-card {
+  background: linear-gradient(135deg, #f1f8e9, #c8e6c9) !important;
+  border: 1px solid #a5d6a7 !important;
+  box-shadow: 0 2px 8px rgba(46,125,50,0.08) !important;
+}
+
+/* 距离/时间大数字 */
+.stat-num {
+  background: linear-gradient(135deg, #1b5e20, #2e7d32);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800 !important;
+}
+
+/* 方向卡片美化 */
+.dir-card {
+  background: #fff !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
+  border-radius: 10px !important;
+  transition: all 0.2s;
+}
+
+.dir-card:hover {
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1) !important;
+}
+
+.dir-card.dir-target {
+  background: linear-gradient(135deg, #fff3e0, #ffe0b2) !important;
+  border-left: 3px solid #ff7043 !important;
+  box-shadow: 0 2px 8px rgba(255, 112, 67, 0.15) !important;
+}
+
+.dir-card.dir-target .dir-icon {
+  color: #e64a19 !important;
+}
+
+.dir-card.dir-target .dir-value {
+  color: #bf360c !important;
+}
+
+/* 步行/驾车按钮美化 */
+.nav-btn {
+  background: linear-gradient(135deg, #ff7043, #e64a19) !important;
+  box-shadow: 0 3px 10px rgba(230, 74, 25, 0.3) !important;
+  border-radius: 12px !important;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(230, 74, 25, 0.4) !important;
+}
+
+.nav-btn-secondary {
+  background: linear-gradient(135deg, #ffa726, #fb8c00) !important;
+}
+
+/* 活动点 marker 加大 + 阴影 */
+.camp-marker-icon {
+  width: 38px !important;
+  height: 38px !important;
+  background: #fff !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18) !important;
+  border: 2.5px solid !important;
+  font-size: 18px !important;
+  transition: all 0.2s;
+}
+
+.camp-marker:hover .camp-marker-icon {
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important;
+}
+
+.camp-marker-label {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.15) !important;
+  border-radius: 6px !important;
+  padding: 3px 8px !important;
+  font-size: 12px !important;
+  font-weight: 600;
+}
+
+/* 用户位置 marker 优化 */
+.user-marker-icon {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  width: 48px !important;
+  height: 48px !important;
+}
+
+.user-arrow {
+  filter: drop-shadow(0 2px 4px rgba(33, 150, 243, 0.4)) !important;
+}
+
+.user-dot {
+  background: linear-gradient(135deg, #2196f3, #1976d2) !important;
+  box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.2), 0 2px 8px rgba(0,0,0,0.3) !important;
+  animation: userPulse 2s ease-in-out infinite;
+}
+
+@keyframes userPulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.2), 0 2px 8px rgba(0,0,0,0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(33, 150, 243, 0.1), 0 2px 8px rgba(0,0,0,0.3); }
+}
+
+/* 定位 FAB */
+#locateBtn {
+  background: linear-gradient(135deg, #2e7d32, #43a047) !important;
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.35) !important;
+  transition: all 0.2s;
+}
+
+#locateBtn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 16px rgba(46, 125, 50, 0.45) !important;
+}
+
+/* 加载 spinner */
+.loading-spinner {
+  border-top-color: #2e7d32 !important;
+}
+
+/* 微信提示条 */
+.weixin-notice {
+  background: linear-gradient(135deg, #43a047, #2e7d32) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3) !important;
+}
+
+.nav-weixin-hint {
+  background: #fff8e1 !important;
+  border-color: #ffcc80 !important;
+  border-radius: 8px !important;
+  color: #e65100 !important;
+}
+
+/* 选中目标 marker 高亮 */
+.camp-marker-target .camp-marker-icon {
+  width: 44px !important;
+  height: 44px !important;
+  font-size: 24px !important;
+  background: #fff !important;
+  box-shadow: 0 4px 14px rgba(233, 30, 99, 0.4) !important;
+  animation: targetPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes targetPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+/* 滚轮滑入底部面板 */
+.bottom-sheet {
+  animation: slideUp 0.4s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }
