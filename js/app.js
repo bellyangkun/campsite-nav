@@ -102,6 +102,12 @@
       const navBtn = $('#baiduNavBtn');
       if (navBtn) navBtn.addEventListener('click', openBaiduWalkingNav);
 
+      // 微信内: 步行按钮下方显示提示
+      if (/MicroMessenger/i.test(navigator.userAgent)) {
+        const hint = $('#navWeixinHint');
+        if (hint) hint.classList.remove('hidden');
+      }
+
       // 定位失败 banner 按钮
       const retryBtn = $('#locateRetryBtn');
       const dismissBtn = $('#locateDismissBtn');
