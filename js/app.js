@@ -512,6 +512,11 @@
     BaiduMap.setCenter(map, userLatLng[1], userLatLng[0], 18);
   }
 
+  // 微信内检测
+  function isWeixin() {
+    return /MicroMessenger/i.test(navigator.userAgent);
+  }
+
   // ===== 跳转百度地图导航 (步行 / 驾车) =====
   // mode: 'walking' | 'driving'
   // 微信内: 不跳, 只弹模态 + 一键复制
@@ -572,69 +577,6 @@
   }
   // 保留旧名兼容
   function openBaiduWalkingNav() { openBaiduNav('walking'); }
-    // 目标转 BD-09 (百度坐标系)
-    const [destBdLng, destBdLat] = Wgs84ToBd09.wgs84ToBd09(dest.lng, dest.lat);
-
-    // 用户位置 (WGS-84 → BD-09)
-    // 注意: 百度 map.baidu.com/dir/ 的 from/to 格式是 "lng,lat" (经度在前, 纬度在后)
-    let origin = '';
-    if (userLatLng) {
-      const [oLng, oLat] = Wgs84ToBd09.wgs84ToBd09(userLatLng[1], userLatLng[0]);
-      origin = `${oLng},${oLat}`;
-    }
-
-    const destCoord = `${destBdLng},${destBdLat}`;  // 修正: lng,lat 顺序
-    const destName = encodeURIComponent(dest.name);
-    const isWeixin = /MicroMessenger/i.test(navigator.userAgent);
-
-    // H5 调起百度地图 (Web 端会跳转到 map.baidu.com, App/微信识别后弹"在 App 打开")
-    const h5Url = `https://map.baidu.com/dir/?mode=walking` +
-      (origin ? `&from=${origin}` : '') +
-      `&to=${destCoord}&to_name=${destName}&coord_type=bd09ll`;
-
-    if (isWeixin) {
-      // 微信内置浏览器:
-      // 1. 用 location.href 跳 (微信会自动转给 baidumap 引擎)
-      // 2. 失败时弹提示, 让用户复制到外部浏览器
-      try {
-        location.href = h5Url;
-      } catch (e) {
-        showWeixinTip(h5Url);
-      }
-      // 兜底: 2.5s 后还在本页, 弹提示
-      setTimeout(() => {
-        if (document.visibilityState === 'visible' && !document.hidden) {
-          showWeixinTip(h5Url);
-        }
-      }, 2500);
-    } else {
-      // 普通浏览器 (桌面 Safari/Chrome, 手机 Safari/Chrome):
-      // 优先用 baidumap:// scheme 唤起 App, 1.5s 没反应跳 Web
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (isMobile) {
-        // baidumap:// 的 origin/destination 也是 lng,lat 格式
-        const appScheme = `baidumap://map/direction?origin=${origin || 'lng,lat'}&destination=${destCoord}&mode=walking&coord_type=bd09ll&src=webkit|baidumap`;
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = appScheme;
-        document.body.appendChild(iframe);
-        setTimeout(() => {
-          if (document.visibilityState === 'visible') {
-            window.location.href = h5Url;
-          }
-          document.body.removeChild(iframe);
-        }, 1500);
-      } else {
-        // 桌面: 新窗口打开 Web
-        window.open(h5Url, '_blank');
-      }
-    }
-  }
-
-  // 微信内: 检测
-  function isWeixin() {
-    return /MicroMessenger/i.test(navigator.userAgent);
-  }
 
   // 微信内点击导航: 弹模态 + 一键复制 URL
   function showWeixinCopyTip(url, mode) {
