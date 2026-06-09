@@ -910,3 +910,28 @@ tr:active { background: #f8f8f8; }
   color: #4a148c;
   font-size: 16px;
 }
+
+/* ===== 增强版用户位置 marker ===== */
+.user-marker-icon {
+  position: relative;
+  width: 48px !important;
+  height: 48px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-left: 11px solid transparent;
+  border-right: 11px solid transparent;
+  border-bottom: 22px solid #2196F3;
+  top: 0;
+  left: 50%;
+  margin-left: -11px;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3));
+  transform-origin: 50% 75%;
+  transition: transform 0.3s ease;
+}

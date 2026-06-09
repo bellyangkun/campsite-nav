@@ -463,9 +463,11 @@
     // 更新"我的状态"卡
     updateMyStatus(lat, lng, accuracy);
 
-    // 移动 user marker 到新位置
-    if (userMarker) {
-      // 移除旧的, 加新的 (BMap divOverlay 不易移动, 用更简单办法: clearOverlays + 重画)
+    // 移动 user marker 到新位置 (用 setPosition 不重建, 保留箭头方向)
+    if (userMarker && userMarker.setPosition) {
+      userMarker.setPosition(lng, lat);
+    } else if (userMarker) {
+      // 兜底: 重建
       map.removeOverlay(userMarker);
       createUserMarker(lat, lng);
     }

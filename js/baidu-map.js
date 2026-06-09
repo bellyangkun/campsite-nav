@@ -98,6 +98,12 @@
     const point = new BMap.Point(bdLng, bdLat);
     const overlay = new DivOverlay(point, html, anchor);
     map.addOverlay(overlay);
+    // 提供 setPosition 方法 (WGS-84 输入) - 移动 marker 不重建 div
+    overlay.setPosition = (newLng, newLat) => {
+      const [bLng, bLat] = Wgs84ToBd09.wgs84ToBd09(newLng, newLat);
+      overlay._point = new BMap.Point(bLng, bLat);
+      overlay.draw();
+    };
     return overlay;
   }
 
