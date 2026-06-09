@@ -246,8 +246,15 @@
       const overlay = BaiduMap.addDivMarker(map, p.lng, p.lat, html, { x: 16, y: 16 });
       mapOverlays[p.id] = overlay;
       // 点击标记: 选为当前目标 (同步下拉框 + 触发路由 + 滚动到底部面板)
-      overlay._div.addEventListener('click', (e) => {
-        e.stopPropagation();
+      // 移动端 bug: 百度地图 div 标记 click 事件会被地图拖动吞掉
+      // 修复: 同时绑 click + touchend, 移动端优先 touchend, 加 300ms 锁防双触发
+      const div = overlay._div;
+      let lastTouchTime = 0;
+      const handleSelect = (e) => {
+        if (e) {
+          e.stopPropagation();
+          e.preventDefault && e.preventDefault();
+        }
         const sel = $('#destSelect');
         if (sel) {
           sel.value = p.id;
@@ -258,6 +265,13 @@
         if (sheet && window.innerWidth <= 600) {
           sheet.scrollIntoView({ behavior: 'smooth', block: 'end' });
         }
+      };
+      div.addEventListener('click', handleSelect);
+      div.addEventListener('touchend', (e) => {
+        const now = Date.now();
+        if (now - lastTouchTime < 400) return;  // 防 click 重复触发
+        lastTouchTime = now;
+        handleSelect(e);
       });
     });
   }

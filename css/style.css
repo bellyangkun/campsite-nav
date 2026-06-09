@@ -810,13 +810,15 @@ tr:active { background: #f8f8f8; }
 .nav-btn:active { transform: translateY(1px); }
 
 /* ===== 标记名称标签 ===== */
-.camp-marker {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  pointer-events: auto;
-}
+ .camp-marker {
+   position: relative;
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   pointer-events: auto;
+   /* 移动端 fix: 不让浏览器把 marker 上的触摸当作地图拖动 */
+   touch-action: manipulation;
+ }
 
 .camp-marker-label {
   margin-top: 4px;

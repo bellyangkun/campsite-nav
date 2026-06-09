@@ -81,6 +81,10 @@
       div.style.position = 'absolute';
       div.style.transform = `translate(-${this._anchor.x}px, -${this._anchor.y}px)`;
       div.style.zIndex = '100';
+      // 移动端 fix: 让浏览器知道这个 div 可点击, 不被地图 SDK 当作拖动手势吞掉
+      // 'manipulation' = 允许点击+双击缩放, 禁用双指手势 (保留单指 pan 给地图)
+      div.style.touchAction = 'manipulation';
+      div.style.cursor = 'pointer';
       div.innerHTML = this._html;
       map.getPanes().markerPane.appendChild(div);
       this._div = div;
