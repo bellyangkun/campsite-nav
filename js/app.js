@@ -100,7 +100,9 @@
       $('#locateBtn').addEventListener('click', locateMe);
       $('#enableCompassBtn').addEventListener('click', requestOrientation);
       const navBtn = $('#baiduNavBtn');
-      if (navBtn) navBtn.addEventListener('click', openBaiduWalkingNav);
+      if (navBtn) navBtn.addEventListener('click', () => openBaiduNav('walking'));
+      const driveBtn = $('#baiduDriveBtn');
+      if (driveBtn) driveBtn.addEventListener('click', () => openBaiduNav('driving'));
 
       // 微信内: 步行按钮下方显示提示
       if (/MicroMessenger/i.test(navigator.userAgent)) {
@@ -510,16 +512,66 @@
     BaiduMap.setCenter(map, userLatLng[1], userLatLng[0], 18);
   }
 
-  // ===== 跳转百度地图步行导航 =====
-  // 兼容方案: 微信内置浏览器 / 普通 Safari / 桌面 Chrome
-  // 微信内禁用 iframe scheme 唤起 + _blank, 必须用 location.href
-  // 微信内访问 map.baidu.com/dir/ 会自动提示"在百度地图中打开"(已装)或显示 Web 规划
-  function openBaiduWalkingNav() {
+  // ===== 跳转百度地图导航 (步行 / 驾车) =====
+  // mode: 'walking' | 'driving'
+  // 微信内: 不跳, 只弹模态 + 一键复制
+  // 微信外: iframe baidumap:// 唤起 App, 1.5s 没反应跳 Web
+  // 关键: 不传 from 起点, 让百度 App 用手机 GPS 自动定位 (避免坐标偏差)
+  function openBaiduNav(mode) {
+    mode = mode || 'walking';
     const dest = getSelectedPoint();
     if (!dest) {
       alert('请先选择目标地点');
       return;
     }
+    // 目标转 BD-09
+    const [destBdLng, destBdLat] = Wgs84ToBd09.wgs84ToBd09(dest.lng, dest.lat);
+    const destCoord = `${destBdLat},${destBdLng}`;
+    const destName = encodeURIComponent(dest.name);
+
+    // 起点 (可选, 用户位置)
+    let origin = '';
+    if (userLatLng) {
+      const [oLng, oLat] = Wgs84ToBd09.wgs84ToBd09(userLatLng[1], userLatLng[0]);
+      origin = `${oLat},${oLng}`;
+    }
+
+    // H5 URL (Web 端)
+    // 关键: 不带 from, 让百度用"我的位置"按钮 (App 自动定位)
+    // region 参数帮助百度定位城市
+    const h5Url = `https://map.baidu.com/dir/?mode=${mode}` +
+      `&destination=${destCoord}&destination_name=${destName}` +
+      `&region=上海&coord_type=bd09ll&output=html` +
+      (origin ? `&origin=${origin}&origin_name=我的位置` : '');
+
+    if (isWeixin()) {
+      // 微信内: 弹模态 + 一键复制
+      showWeixinCopyTip(h5Url, mode);
+    } else {
+      // 普通手机: iframe scheme 唤 App
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        // baidumap:// 唤起 App 步行/驾车
+        const appScheme = `baidumap://map/direction?destination=${destCoord}&destination_name=${destName}&mode=${mode}&coord_type=bd09ll&src=webkit|baidumap` +
+          (origin ? `&origin=${origin}&origin_name=${encodeURIComponent('我的位置')}` : '');
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = appScheme;
+        document.body.appendChild(iframe);
+        setTimeout(() => {
+          if (document.visibilityState === 'visible') {
+            window.location.href = h5Url;
+          }
+          document.body.removeChild(iframe);
+        }, 1500);
+      } else {
+        // 桌面: 新窗口
+        window.open(h5Url, '_blank');
+      }
+    }
+  }
+  // 保留旧名兼容
+  function openBaiduWalkingNav() { openBaiduNav('walking'); }
     // 目标转 BD-09 (百度坐标系)
     const [destBdLng, destBdLat] = Wgs84ToBd09.wgs84ToBd09(dest.lng, dest.lat);
 
@@ -579,7 +631,70 @@
     }
   }
 
-  // 微信内兜底提示: 让用户复制链接到外部浏览器打开
+  // 微信内: 检测
+  function isWeixin() {
+    return /MicroMessenger/i.test(navigator.userAgent);
+  }
+
+  // 微信内点击导航: 弹模态 + 一键复制 URL
+  function showWeixinCopyTip(url, mode) {
+    if (document.getElementById('weixinCopyModal')) return;
+    const modeLabel = mode === 'driving' ? '驾车' : '步行';
+    const modal = document.createElement('div');
+    modal.id = 'weixinCopyModal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;padding:20px';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:12px;padding:20px;max-width:360px;width:100%">
+        <div style="font-size:32px;text-align:center;margin-bottom:8px">🗺️</div>
+        <h3 style="margin:0 0 8px;font-size:16px;text-align:center">在浏览器中打开</h3>
+        <p style="margin:0 0 12px;font-size:13px;color:#555;line-height:1.5;text-align:center">
+          微信内可能无法直接唤起, 请点击右上角 <strong>···</strong> 选择<br/>「<strong>在浏览器中打开</strong>」${modeLabel}导航<br/>
+          或复制下方链接到浏览器打开
+        </p>
+        <div style="background:#f5f5f5;padding:8px 10px;border-radius:6px;font-size:12px;word-break:break-all;color:#666;margin-bottom:10px;font-family:monospace;max-height:100px;overflow:auto">
+          ${url}
+        </div>
+        <div style="display:flex;gap:8px">
+          <button id="weixinCopyBtn" style="flex:1;padding:10px;background:#4caf50;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer">📋 一键复制</button>
+          <button id="weixinCopyClose" style="flex:0;padding:10px 16px;background:#f5f5f5;color:#666;border:none;border-radius:6px;font-size:14px;cursor:pointer">关闭</button>
+        </div>
+        <div id="weixinCopyStatus" style="margin-top:8px;font-size:12px;color:#4caf50;text-align:center;min-height:16px"></div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.querySelector('#weixinCopyBtn').addEventListener('click', async () => {
+      const status = modal.querySelector('#weixinCopyStatus');
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(url);
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = url;
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        }
+        status.textContent = '✓ 已复制, 粘贴到浏览器打开';
+      } catch (e) {
+        status.textContent = '复制失败, 请长按链接手动复制';
+        status.style.color = '#c62828';
+      }
+    });
+
+    const closeModal = () => {
+      if (document.body.contains(modal)) document.body.removeChild(modal);
+    };
+    modal.querySelector('#weixinCopyClose').addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+  }
+
+  // 老兜底, 保留以防兼容
   function showWeixinTip(url) {
     // 只弹一次
     if (document.getElementById('weixinTipModal')) return;

@@ -935,3 +935,23 @@ tr:active { background: #f8f8f8; }
   transform-origin: 50% 75%;
   transition: transform 0.3s ease;
 }
+
+/* ===== 导航按钮组 ===== */
+.nav-btn-group {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.nav-btn-group .nav-btn {
+  flex: 1;
+  margin: 0;
+}
+
+.nav-btn-secondary {
+  background: linear-gradient(135deg, #ff7043, #e64a19);
+  box-shadow: 0 2px 8px rgba(230, 74, 25, 0.25);
+}
+.nav-btn-secondary:hover {
+  box-shadow: 0 4px 14px rgba(230, 74, 25, 0.4);
+}
