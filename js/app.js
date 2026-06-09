@@ -84,8 +84,6 @@
   let orientationActive = false;
   let compassHeading = null;
   let activeTypeFilter = 'all';
-  let activeGroupFilter = 'all';
-  let petOnly = false;
   let mapOverlays = {};      // { pointId: overlay } 用于显隐
 
   // ===== 初始化 =====
@@ -207,7 +205,6 @@
 
   // ===== 类型过滤 =====
   function setupTypeFilter() {
-    // 子层: 类型 chip
     const typeChips = document.querySelectorAll('#typeChips .chip');
     typeChips.forEach(chip => {
       chip.addEventListener('click', () => {
@@ -217,39 +214,11 @@
         applyFilters();
       });
     });
-    // 上层: 分组 chip
-    const groupChips = document.querySelectorAll('#groupChips .chip:not(.pet-only)');
-    groupChips.forEach(chip => {
-      chip.addEventListener('click', () => {
-        groupChips.forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        activeGroupFilter = chip.dataset.group;
-        applyFilters();
-      });
-    });
-    // 宠物友好 toggle
-    const petChip = document.getElementById('petOnlyChip');
-    if (petChip) {
-      petChip.addEventListener('click', () => {
-        petOnly = !petOnly;
-        petChip.classList.toggle('active', petOnly);
-        petChip.dataset.petonly = petOnly ? '1' : '0';
-        applyFilters();
-      });
-    }
   }
 
   function applyFilters() {
-    // 计算分组允许的 type 集合
-    const groupTypes = CampData.getGroupTypes(activeGroupFilter);
-    // 过滤点
     visiblePoints = points.filter(p => {
-      // 分组过滤
-      if (groupTypes && !groupTypes.includes(p.type)) return false;
-      // 类型过滤
       if (activeTypeFilter !== 'all' && p.type !== activeTypeFilter) return false;
-      // 宠物友好
-      if (petOnly && !p.petFriendly) return false;
       return true;
     });
     // 更新地图标记显隐

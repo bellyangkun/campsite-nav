@@ -78,21 +78,8 @@
     other:     { label: '其他',   color: '#9E9E9E', icon: '📍' }
   };
 
-  // ===== 分组 (P0-1 设施地图) =====
-  // 一个 type 可属于多个 group, 过滤时取并集
-  const GROUP_META = {
-    sport:   { label: '运动',   color: '#E91E63', icon: '🏃', types: ['activity', 'flash', 'entrance'] },
-    kids:    { label: '亲子',   color: '#FF9800', icon: '🧒', types: ['activity', 'service'] },
-    stay:    { label: '住宿',   color: '#9C27B0', icon: '🏨', types: ['hotel'] },
-    food:    { label: '餐饮',   color: '#FF9800', icon: '🍽️', types: ['restaurant', 'teahouse'] },
-    service: { label: '服务',   color: '#2196F3', icon: '🛒', types: ['service', 'toilet', 'other'] }
-  };
+  // (旧: 设施分组 GROUP_META + getGroupTypes 已废弃, v0.6 删)
 
-  function getGroupTypes(group) {
-    if (!group || group === 'all') return null;  // null = 不过滤
-    const g = GROUP_META[group];
-    return g ? g.types : null;
-  }
 
   // ===== 内部缓存 (内存) =====
   let memoryCache = null;        // { points: [...], source: 'server'|'local'|'default', updatedAt: ts }
@@ -374,7 +361,6 @@
     importJSON,
     exportJSON,
     getTypeMeta,
-    getGroupTypes,
     escapeHtml,
     validatePoint
   };

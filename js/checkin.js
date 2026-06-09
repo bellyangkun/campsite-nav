@@ -1,11 +1,15 @@
-// ===== P0 打卡集章 (顾客端) =====
+// ===== P0 打卡集章 (顾客端) - 自动版 v0.6 =====
 (function () {
   'use strict';
 
   const API = window.CAMPSITE_API_BASE || '/api';
   const STORAGE_KEY = 'campsite_user_id';
+  const RADIUS = 80;          // 检测半径 80m
+  const DWELL_REQUIRED = 30;  // 停留 30s 才打卡
+  const CHECK_INTERVAL = 5000; // 每 5s 检查一次
+  const SUBMITTED_KEY = 'campsite_checkin_submitted_v1';  // 24h 提交过的 POI 缓存
 
-  // 用户 ID (无登录体系, 随机生成 + 存 localStorage)
+  // 用户 ID
   function getUserId() {
     let id = localStorage.getItem(STORAGE_KEY);
     if (!id) {
@@ -23,11 +27,36 @@
     { n: 21, name: '全勤奖', icon: '🏆', desc: '满 21 印章 → 全场 VIP 体验' }
   ];
 
+  // dwell 状态: pointId -> { enteredAt, submittedAt }
+  const dwellState = new Map();
+  // 24h 内已提交过的 POI (含成功, 含距离 409)
+  function getSubmittedSet() {
+    try {
+      const raw = localStorage.getItem(SUBMITTED_KEY);
+      if (!raw) return new Set();
+      const obj = JSON.parse(raw);
+      // 过滤掉超过 24h 的
+      const now = Date.now();
+      const fresh = {};
+      Object.keys(obj).forEach(k => {
+        if (now - obj[k] < 24 * 3600 * 1000) fresh[k] = obj[k];
+      });
+      localStorage.setItem(SUBMITTED_KEY, JSON.stringify(fresh));
+      return new Set(Object.keys(fresh));
+    } catch (e) { return new Set(); }
+  }
+  function markSubmitted(pointId) {
+    const set = getSubmittedSet();
+    set.add(pointId);
+    const obj = {};
+    set.forEach(k => { obj[k] = Date.now(); });
+    localStorage.setItem(SUBMITTED_KEY, JSON.stringify(obj));
+  }
+
   // ===== 工具栏按钮 =====
   function setupCheckinBtn() {
     const tb = document.getElementById('quickToolbar');
     if (!tb) return;
-    // 不重复添加
     if (document.getElementById('toolCheckinBtn')) return;
     const btn = document.createElement('button');
     btn.className = 'tool-btn tool-checkin';
@@ -35,17 +64,15 @@
     btn.title = '打卡集章';
     btn.innerHTML = '<span class="tool-icon">🏆</span><span class="tool-label">打卡集章</span>';
     btn.addEventListener('click', showCheckinPanel);
-    // 插到 "AI 客服" 后
     const aiBtn = document.getElementById('toolAiBtn');
     if (aiBtn && aiBtn.nextSibling) tb.insertBefore(btn, aiBtn.nextSibling);
     else tb.appendChild(btn);
   }
 
-  // ===== 弹窗: 打卡集章面板 =====
+  // ===== 弹窗: 打卡面板 =====
   async function showCheckinPanel() {
     if (document.getElementById('checkinModal')) return;
     const userId = getUserId();
-    // 拉用户打卡统计
     let stats = { unique: 0, pointIds: [], latest: [] };
     try {
       const res = await fetch(API + '/checkins/stats?userId=' + encodeURIComponent(userId), { cache: 'no-store' });
@@ -53,16 +80,12 @@
         const j = await res.json();
         stats = j.data || stats;
       }
-    } catch (e) {
-      console.warn('[Checkin] 拉统计失败', e);
-    }
-    // 拉 POI 列表
+    } catch (e) { console.warn('[Checkin] 拉统计失败', e); }
     const points = await CampData.getPoints();
     const pointMap = {};
     points.forEach(p => { pointMap[p.id] = p; });
     const doneSet = new Set(stats.pointIds);
 
-    // 渲染
     const rewardHtml = REWARDS.map(r => {
       const reached = stats.unique >= r.n;
       return `<div class="ck-reward ${reached ? 'reached' : ''}">
@@ -83,7 +106,8 @@
 
     const latestHtml = stats.latest.length ? stats.latest.map(c => {
       const t = new Date(c.timestamp).toLocaleString('zh-CN', { hour12: false });
-      return `<div class="ck-log-item">🏆 ${CampData.escapeHtml(c.pointName)} <span class="muted">${t}</span></div>`;
+      const autoTag = c.auto ? ' <span class="bk-st bk-ok" style="font-size:9px">自动</span>' : ' <span class="bk-st bk-pending" style="font-size:9px">手动</span>';
+      return `<div class="ck-log-item">🏆 ${CampData.escapeHtml(c.pointName)}${autoTag} <span class="muted">${t}</span></div>`;
     }).join('') : '<div class="empty-tip">还没打卡, 出发吧!</div>';
 
     const m = document.createElement('div');
@@ -99,6 +123,9 @@
           <div class="ck-prog-num">${stats.unique} <span class="muted">/ ${points.length}</span></div>
           <div class="ck-prog-bar"><div class="ck-prog-fill" style="width:${Math.round(stats.unique / points.length * 100)}%"></div></div>
         </div>
+        <p class="muted" style="text-align:center;padding:6px 14px;background:#FFF8E1;font-size:11px">
+          📍 自动打卡: 进入 POI ${RADIUS}m 范围 + 停留 ${DWELL_REQUIRED}s 即可, 无需点按钮
+        </p>
         <div class="ck-section-title">🎁 奖励梯度</div>
         <div class="ck-rewards">${rewardHtml}</div>
         <div class="ck-section-title">📍 全部 POI (${points.length})</div>
@@ -113,135 +140,113 @@
     m.addEventListener('click', (e) => { if (e.target === m) m.remove(); });
   }
 
-  // ===== 自动检测近 POI + 弹打卡提示 =====
-  // 每 60s 检查一次, 距离 < 80m 且未打卡过 (24h) 弹气泡
-  let checkinPromptShown = new Set();
-  let lastCheckTime = 0;
-
-  function setupAutoPrompt() {
-    // 监听 app.js 暴露的 my 位置事件 (每秒更新)
-    document.addEventListener('campsite-my-location', (e) => {
-      const { lat, lng } = e.detail;
-      if (!lat || !lng) return;
-      const now = Date.now();
-      if (now - lastCheckTime < 60000) return;  // 限频 60s
-      lastCheckTime = now;
-      checkNearby(lat, lng);
-    });
-  }
-
-  async function checkNearby(lat, lng) {
-    try {
-      const points = await CampData.getPoints();
-      for (const p of points) {
-        const d = haversine(lat, lng, p.lat, p.lng);
-        if (d > 80) continue;
-        if (checkinPromptShown.has(p.id + '_' + Math.floor(Date.now() / 3600000))) continue;  // 同 POI 同小时不弹
-        // 24h 防刷
-        const userId = getUserId();
-        const stats = await fetch(API + '/checkins/stats?userId=' + encodeURIComponent(userId)).then(r => r.json()).catch(() => null);
-        if (stats && stats.data && stats.data.pointIds.includes(p.id)) continue;
-        // 弹气泡
-        showPrompt(p);
-        checkinPromptShown.add(p.id + '_' + Math.floor(Date.now() / 3600000));
-        break;  // 一次只弹一个
-      }
-    } catch (e) {
-      console.warn('[Checkin] auto-prompt', e);
-    }
-  }
-
-  function showPrompt(p) {
-    const old = document.getElementById('checkinToast');
+  // ===== 轻提示: 自动打卡成功 (不挡路) =====
+  function showLightToast(p, userTotal) {
+    // 关已有
+    const old = document.getElementById('checkinLightToast');
     if (old) old.remove();
     const t = document.createElement('div');
-    t.id = 'checkinToast';
-    t.className = 'checkin-toast';
+    t.id = 'checkinLightToast';
+    t.className = 'ck-light-toast';
+    const next = REWARDS.find(r => r.n > userTotal);
+    const rewardLine = next
+      ? `还差 ${next.n - userTotal} 个印章 → ${next.icon} ${next.name}`
+      : `🏆 已达成全部奖励!`;
     t.innerHTML = `
-      <div class="ck-t-icon">🏆</div>
-      <div class="ck-t-body">
-        <div class="ck-t-title">附近: ${CampData.escapeHtml(p.name)}</div>
-        <div class="ck-t-hint">点击打卡, 收集印章换奖励</div>
+      <div class="ck-lt-icon">🏆</div>
+      <div class="ck-lt-body">
+        <div class="ck-lt-title">${CampData.escapeHtml(p.name)} 已打卡</div>
+        <div class="ck-lt-sub">${rewardLine}</div>
       </div>
-      <button class="ck-t-go" id="ckToastGoBtn">立即打卡</button>
-      <button class="ck-t-close" id="ckToastCloseBtn">✕</button>
+      <button class="ck-lt-close" id="ckLtCloseBtn">✕</button>
     `;
     document.body.appendChild(t);
-    t.querySelector('#ckToastGoBtn').addEventListener('click', () => doCheckin(p));
-    t.querySelector('#ckToastCloseBtn').addEventListener('click', () => t.remove());
+    t.querySelector('#ckLtCloseBtn').addEventListener('click', () => t.remove());
     // 5s 自动消失
-    setTimeout(() => { if (document.getElementById('checkinToast')) t.remove(); }, 12000);
+    setTimeout(() => { if (document.getElementById('checkinLightToast')) t.remove(); }, 5000);
   }
 
-  async function doCheckin(p) {
-    // 拿当前 GPS
-    if (!navigator.geolocation) {
-      alert('设备不支持定位');
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const userLat = pos.coords.latitude;
-      const userLng = pos.coords.longitude;
-      const userId = getUserId();
-      try {
-        const res = await fetch(API + '/checkins', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId, pointId: p.id,
-            userLat, userLng
-          })
-        });
-        const j = await res.json();
-        if (j.code !== 0) {
-          alert('打卡失败: ' + j.message);
-          return;
-        }
-        // 关气泡
-        const toast = document.getElementById('checkinToast');
-        if (toast) toast.remove();
-        // 弹成功
-        showSuccess(p, j.userTotal);
-      } catch (e) {
-        alert('打卡失败: ' + e.message);
+  // ===== 自动检测: 监听 my-location =====
+  let lastPoints = null;
+  let userLat = null, userLng = null;
+  function setupAutoCheckin() {
+    document.addEventListener('campsite-my-location', async (e) => {
+      userLat = e.detail.lat;
+      userLng = e.detail.lng;
+      if (!userLat || !userLng) return;
+      // 缓存 POI
+      if (!lastPoints) {
+        try { lastPoints = await CampData.getPoints(); } catch (e) { return; }
       }
-    }, (err) => {
-      alert('需要定位权限才能打卡: ' + err.message);
-    }, { enableHighAccuracy: true, timeout: 10000 });
+    });
+    // 5s 检查一次 dwell
+    setInterval(checkDwell, CHECK_INTERVAL);
   }
 
-  function showSuccess(p, userTotal) {
-    const m = document.createElement('div');
-    m.className = 'modal-backdrop';
-    const rewardsUnlocked = REWARDS.filter(r => r.n === userTotal);
-    const rewardLine = rewardsUnlocked.length
-      ? `<div class="ck-succ-reward">🎉 解锁: ${rewardsUnlocked.map(r => r.icon + ' ' + r.name).join(' + ')}</div>`
-      : `<div class="ck-succ-reward">还差 ${REWARDS.find(r => r.n > userTotal).n - userTotal} 个印章, 加油!</div>`;
-    m.innerHTML = `
-      <div class="modal-card success-card">
-        <div class="success-icon">🏆</div>
-        <h3>打卡成功</h3>
-        <p>${CampData.escapeHtml(p.name)}</p>
-        <div class="success-detail">
-          <div>累计: <strong>${userTotal}</strong> 个印章</div>
-        </div>
-        ${rewardLine}
-        <div class="modal-actions">
-          <button class="btn-copy" id="ckSuccPanelBtn">查看进度</button>
-          <button class="btn-close" id="ckSuccCloseBtn">关闭</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(m);
-    m.querySelector('#ckSuccCloseBtn').addEventListener('click', () => m.remove());
-    m.querySelector('#ckSuccPanelBtn').addEventListener('click', () => {
-      m.remove();
-      // 关所有现存弹窗
-      const ck = document.getElementById('checkinModal');
-      if (ck) ck.remove();
-      showCheckinPanel();
-    });
-    m.addEventListener('click', (e) => { if (e.target === m) m.remove(); });
+  async function checkDwell() {
+    if (!userLat || !userLng || !lastPoints) return;
+    const submitted = getSubmittedSet();
+    const now = Date.now();
+    for (const p of lastPoints) {
+      if (submitted.has(p.id)) continue;  // 24h 已打过
+      const d = haversine(userLat, userLng, p.lat, p.lng);
+      const state = dwellState.get(p.id);
+      if (d <= RADIUS) {
+        // 在范围内
+        if (!state) {
+          // 首次进入
+          dwellState.set(p.id, { enteredAt: now, dwellMs: 0, submitted: false });
+        } else if (!state.submitted) {
+          state.dwellMs = now - state.enteredAt;
+          // 达 30s → 静默 POST
+          if (state.dwellMs >= DWELL_REQUIRED * 1000) {
+            state.submitted = true;
+            submitAuto(p, state.dwellMs);
+          }
+        }
+      } else {
+        // 离开范围 → 清零
+        if (state) dwellState.delete(p.id);
+      }
+    }
+  }
+
+  async function submitAuto(p, dwellMs) {
+    const userId = getUserId();
+    try {
+      const res = await fetch(API + '/checkins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          pointId: p.id,
+          userLat,
+          userLng,
+          dwellTime: Math.round(dwellMs / 1000),
+          auto: true
+        })
+      });
+      const j = await res.json();
+      if (j.code === 0) {
+        // 成功
+        markSubmitted(p.id);
+        showLightToast(p, j.userTotal);
+        // 通知地图层 (如果监听)
+        document.dispatchEvent(new CustomEvent('campsite-checkin-success', { detail: { point: p, userTotal: j.userTotal } }));
+      } else if (j.code === 409) {
+        // 24h 已打过
+        markSubmitted(p.id);
+      } else {
+        // 失败: 不标 submitted, 下次 dwell 再试
+        const state = dwellState.get(p.id);
+        if (state) state.submitted = false;
+        console.warn('[Checkin] auto fail', j);
+      }
+    } catch (e) {
+      const state = dwellState.get(p.id);
+      if (state) state.submitted = false;
+      console.warn('[Checkin] auto net err', e);
+    }
   }
 
   // ===== 工具: haversine =====
@@ -258,7 +263,7 @@
   // ===== 启动 =====
   function init() {
     setupCheckinBtn();
-    setupAutoPrompt();
+    setupAutoCheckin();
   }
 
   if (document.readyState === 'loading') {

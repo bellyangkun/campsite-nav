@@ -1306,12 +1306,7 @@ body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   line-height: 1;
 }
-/* 宠物过滤 chip */
-#petOnlyChip.active {
-  background: #FF7043;
-  color: #fff;
-  border-color: #FF7043;
-}
+/* (旧: 宠物过滤 chip #petOnlyChip 已删, v0.6) */
 .camp-marker-icon {
   position: relative;
 }
@@ -1886,4 +1881,40 @@ body {
   color: #aaa;
   cursor: pointer;
   padding: 0 4px;
+}
+
+/* 轻提示 (自动打卡成功) */
+.ck-light-toast {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #FFC107, #FF8F00);
+  color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 9998;
+  min-width: 260px;
+  max-width: 90vw;
+  animation: slideDownToast 0.3s ease;
+}
+@keyframes slideDownToast { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+.ck-lt-icon { font-size: 26px; line-height: 1; }
+.ck-lt-body { flex: 1; }
+.ck-lt-title { font-weight: 700; font-size: 14px; }
+.ck-lt-sub { font-size: 11px; opacity: 0.9; margin-top: 2px; }
+.ck-lt-close {
+  background: rgba(255,255,255,0.2);
+  border: 0;
+  color: #fff;
+  font-size: 14px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  line-height: 1;
 }
