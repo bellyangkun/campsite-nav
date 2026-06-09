@@ -856,3 +856,57 @@ tr:active { background: #f8f8f8; }
 .nav-weixin-hint.hidden { display: none !important; }
 
 .nav-weixin-hint strong { color: #bf360c; font-weight: 700; }
+
+/* ===== 我的状态卡 (常驻) ===== */
+.my-status-card {
+  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  border: 1px solid #90caf9;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.my-status-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.my-status-icon {
+  font-size: 24px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.my-status-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.my-status-label {
+  font-size: 11px;
+  color: #1565c0;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.my-status-value {
+  font-size: 14px;
+  color: #0d47a1;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.my-status-arrow {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.my-status-arrow .my-status-label {
+  color: #6a1b9a;
+}
+
+.my-status-arrow .my-status-value {
+  color: #4a148c;
+  font-size: 16px;
+}

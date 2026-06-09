@@ -460,6 +460,9 @@
 
     userLatLng = [lat, lng];
 
+    // 更新"我的状态"卡
+    updateMyStatus(lat, lng, accuracy);
+
     // 移动 user marker 到新位置
     if (userMarker) {
       // 移除旧的, 加新的 (BMap divOverlay 不易移动, 用更简单办法: clearOverlays + 重画)
@@ -656,6 +659,21 @@
   function setHeading(heading, source) {
     currentHeading = heading;
     updateArrowUI(heading);
+    // 更新"我的状态"卡的朝向
+    const headingEl = $('#myStatusHeading');
+    if (headingEl) {
+      const ci = cardinalWithIcon(heading);
+      headingEl.textContent = `${ci.icon} ${ci.dir} ${Math.round(heading)}°`;
+    }
+  }
+
+  // 更新"我的状态"卡 (位置 + 精度)
+  function updateMyStatus(lat, lng, accuracy) {
+    const locEl = $('#myStatusLoc');
+    if (locEl) {
+      const acc = accuracy && accuracy < 1000 ? ` ±${Math.round(accuracy)}m` : '';
+      locEl.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}${acc}`;
+    }
   }
 
   function updateArrowUI(deg) {

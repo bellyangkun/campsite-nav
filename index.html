@@ -59,6 +59,21 @@
   </div>
 
   <div class="bottom-sheet">
+    <!-- 我的状态卡 (常驻, 无需选目标也显示) -->
+    <div class="my-status-card">
+      <div class="my-status-row">
+        <div class="my-status-icon" id="myStatusIcon">📍</div>
+        <div class="my-status-info">
+          <div class="my-status-label">我的位置</div>
+          <div class="my-status-value" id="myStatusLoc">定位中...</div>
+        </div>
+        <div class="my-status-arrow">
+          <div class="my-status-label">朝向</div>
+          <div class="my-status-value" id="myStatusHeading">—</div>
+        </div>
+      </div>
+    </div>
+
     <div id="routeInfo" class="route-info hidden">
       <!-- 主信息: 距离 + 时间 -->
       <div class="route-main">
