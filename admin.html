@@ -64,6 +64,12 @@
           <textarea name="description" placeholder="描述（可选）"></textarea>
         </div>
         <div class="form-row">
+          <label class="checkbox-row">
+            <input type="checkbox" name="petFriendly" value="1" />
+            <span>🐾 宠物友好（带宠物可进入）</span>
+          </label>
+        </div>
+        <div class="form-row">
           <button type="submit" class="btn">➕ 添加活动点</button>
           <button type="button" id="resetBtn" class="btn secondary">重置为默认数据</button>
         </div>
@@ -89,6 +95,51 @@
       </div>
     </div>
 
+    <!-- ===== P1 活动配置 + 预约管理 ===== -->
+    <div class="card">
+      <h2>📅 活动配置</h2>
+      <p class="hint">配置可预约活动 (主题/价格/日期段/容量), 顾客端"活动预约"立即可见。</p>
+      <form id="activityForm">
+        <div class="form-row">
+          <input type="text" name="name" placeholder="活动名称 *" required />
+          <input type="number" name="price" placeholder="单价(元/人)" min="0" value="0" />
+        </div>
+        <div class="form-row">
+          <input type="text" name="description" placeholder="活动描述 (可选)" style="flex:2" />
+          <input type="number" name="capacity" placeholder="单期容量(人)" min="1" value="20" />
+        </div>
+        <div class="form-row">
+          <input type="text" name="slots" placeholder="可预约日期 (逗号分隔, 例 2026-06-15,2026-06-16,2026-06-20)" style="flex:1" required />
+        </div>
+        <div class="form-row">
+          <button type="submit" class="btn">➕ 添加/更新活动</button>
+        </div>
+      </form>
+      <div class="table-wrap" style="margin-top:14px">
+        <table>
+          <thead>
+            <tr><th>名称</th><th>价格</th><th>容量</th><th>可选日期</th><th>操作</th></tr>
+          </thead>
+          <tbody id="activitiesTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📋 预约审批</h2>
+      <div class="form-row">
+        <button type="button" id="refreshBookingsBtn" class="btn">🔄 刷新预约列表</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>活动</th><th>日期</th><th>人数</th><th>姓名</th><th>手机</th><th>备注</th><th>状态</th><th>操作</th></tr>
+          </thead>
+          <tbody id="bookingsTable"></tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="card">
       <h2>数据导入 / 导出</h2>
       <p class="hint">导出 JSON 可用于备份；选择 JSON 文件可批量导入并覆盖现有数据。</p>
@@ -108,5 +159,6 @@
   <script src="js/baidu-map.js"></script>
   <script src="js/data.js"></script>
   <script src="js/admin.js"></script>
+  <script src="js/admin-booking.js"></script>
 </body>
 </html>

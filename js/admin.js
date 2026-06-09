@@ -225,7 +225,8 @@
         type: fd.get('type'),
         lat: parseFloat(fd.get('lat')),
         lng: parseFloat(fd.get('lng')),
-        description: fd.get('description') || ''
+        description: fd.get('description') || '',
+        petFriendly: fd.get('petFriendly') === '1'
       };
       try {
         points = await CampData.addPoint(newPoint);

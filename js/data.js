@@ -19,6 +19,8 @@
   const STORAGE_KEY = 'campsite_points_v2';
   const API_BASE = '/api';
   const ADMIN_TOKEN = 'campsite-nav-2026';  // 仅 admin.html 写入时使用
+  // 暴露给 extras.js 等其他模块用
+  global.CAMPSITE_API_BASE = API_BASE;
 
   // 错误上报到服务器 (解决 Safari/Chrome 调试困难)
   function reportDiag(level, msg, extra) {
@@ -75,6 +77,22 @@
     teahouse:  { label: '茶馆',   color: '#795548', icon: '🍵' },
     other:     { label: '其他',   color: '#9E9E9E', icon: '📍' }
   };
+
+  // ===== 分组 (P0-1 设施地图) =====
+  // 一个 type 可属于多个 group, 过滤时取并集
+  const GROUP_META = {
+    sport:   { label: '运动',   color: '#E91E63', icon: '🏃', types: ['activity', 'flash', 'entrance'] },
+    kids:    { label: '亲子',   color: '#FF9800', icon: '🧒', types: ['activity', 'service'] },
+    stay:    { label: '住宿',   color: '#9C27B0', icon: '🏨', types: ['hotel'] },
+    food:    { label: '餐饮',   color: '#FF9800', icon: '🍽️', types: ['restaurant', 'teahouse'] },
+    service: { label: '服务',   color: '#2196F3', icon: '🛒', types: ['service', 'toilet', 'other'] }
+  };
+
+  function getGroupTypes(group) {
+    if (!group || group === 'all') return null;  // null = 不过滤
+    const g = GROUP_META[group];
+    return g ? g.types : null;
+  }
 
   // ===== 内部缓存 (内存) =====
   let memoryCache = null;        // { points: [...], source: 'server'|'local'|'default', updatedAt: ts }
@@ -238,6 +256,9 @@
     if ('description' in p && p.description !== null && typeof p.description !== 'string') {
       throw new Error('描述必须是字符串');
     }
+    if ('petFriendly' in p && typeof p.petFriendly !== 'boolean') {
+      throw new Error('petFriendly 必须是布尔');
+    }
   }
 
   function genId() {
@@ -353,6 +374,7 @@
     importJSON,
     exportJSON,
     getTypeMeta,
+    getGroupTypes,
     escapeHtml,
     validatePoint
   };

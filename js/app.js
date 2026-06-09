@@ -84,6 +84,8 @@
   let orientationActive = false;
   let compassHeading = null;
   let activeTypeFilter = 'all';
+  let activeGroupFilter = 'all';
+  let petOnly = false;
   let mapOverlays = {};      // { pointId: overlay } 用于显隐
 
   // ===== 初始化 =====
@@ -139,6 +141,9 @@
             zoom: 15,
             enableScrollWheelZoom: true
           });
+          // 暴露给 extras.js (P0-4 疏散)
+          window.__campsiteMap = map;
+          document.dispatchEvent(new CustomEvent('campsite-map-ready', { detail: { map } }));
           renderPoints();
           createUserMarker(first.lat, first.lng);
           // 智能调度: fitBounds 全部活动点 (不用 flyTo 单一目标)
@@ -202,21 +207,49 @@
 
   // ===== 类型过滤 =====
   function setupTypeFilter() {
-    const chips = document.querySelectorAll('#typeChips .chip');
-    chips.forEach(chip => {
+    // 子层: 类型 chip
+    const typeChips = document.querySelectorAll('#typeChips .chip');
+    typeChips.forEach(chip => {
       chip.addEventListener('click', () => {
-        chips.forEach(c => c.classList.remove('active'));
+        typeChips.forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
         activeTypeFilter = chip.dataset.type;
         applyFilters();
       });
     });
+    // 上层: 分组 chip
+    const groupChips = document.querySelectorAll('#groupChips .chip:not(.pet-only)');
+    groupChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        groupChips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        activeGroupFilter = chip.dataset.group;
+        applyFilters();
+      });
+    });
+    // 宠物友好 toggle
+    const petChip = document.getElementById('petOnlyChip');
+    if (petChip) {
+      petChip.addEventListener('click', () => {
+        petOnly = !petOnly;
+        petChip.classList.toggle('active', petOnly);
+        petChip.dataset.petonly = petOnly ? '1' : '0';
+        applyFilters();
+      });
+    }
   }
 
   function applyFilters() {
+    // 计算分组允许的 type 集合
+    const groupTypes = CampData.getGroupTypes(activeGroupFilter);
     // 过滤点
     visiblePoints = points.filter(p => {
+      // 分组过滤
+      if (groupTypes && !groupTypes.includes(p.type)) return false;
+      // 类型过滤
       if (activeTypeFilter !== 'all' && p.type !== activeTypeFilter) return false;
+      // 宠物友好
+      if (petOnly && !p.petFriendly) return false;
       return true;
     });
     // 更新地图标记显隐
@@ -235,9 +268,10 @@
     visiblePoints = points.slice();  // 默认全部可见
     points.forEach((p) => {
       const meta = CampData.getTypeMeta(p.type);
+      const petBadge = p.petFriendly ? '<span class="pet-badge" title="宠物友好">🐾</span>' : '';
       // 标记: emoji + 名称标签
       const html = `<div class="camp-marker">
-        <div class="camp-marker-icon" style="color:${meta.color};border-color:${meta.color}">${meta.icon}</div>
+        <div class="camp-marker-icon" style="color:${meta.color};border-color:${meta.color}">${meta.icon}${petBadge}</div>
         <div class="camp-marker-label" style="color:${meta.color}">${CampData.escapeHtml(p.name)}</div>
       </div>`;
       const overlay = BaiduMap.addDivMarker(map, p.lng, p.lat, html, { x: 16, y: 16 });
