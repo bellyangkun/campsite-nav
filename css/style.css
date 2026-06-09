@@ -955,3 +955,50 @@ tr:active { background: #f8f8f8; }
 .nav-btn-secondary:hover {
   box-shadow: 0 4px 14px rgba(230, 74, 25, 0.4);
 }
+
+/* ===== 底部面板折叠 ===== */
+.bottom-sheet {
+  transition: max-height 0.3s ease, padding 0.3s ease, transform 0.3s ease;
+  max-height: 80vh;
+  overflow: hidden auto;
+}
+
+.bottom-sheet.collapsed {
+  max-height: 48px;
+  overflow: hidden;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.bottom-sheet.collapsed > *:not(.sheet-handle) {
+  display: none;
+}
+
+.sheet-handle {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 6px 0 8px;
+  cursor: pointer;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sheet-handle-icon {
+  display: inline-block;
+  font-size: 14px;
+  color: #999;
+  transition: transform 0.3s ease;
+  user-select: none;
+}
+
+.bottom-sheet.collapsed .sheet-handle-icon {
+  transform: rotate(180deg);
+}
+
+/* 全屏模式: 隐藏顶部搜索/类型过滤, 给地图更多空间 */
+body.fullscreen .top-bar,
+body.fullscreen .search-bar {
+  display: none;
+}

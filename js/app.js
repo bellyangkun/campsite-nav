@@ -110,6 +110,9 @@
         if (hint) hint.classList.remove('hidden');
       }
 
+      // 底部面板折叠/展开
+      setupSheetToggle();
+
       // 定位失败 banner 按钮
       const retryBtn = $('#locateRetryBtn');
       const dismissBtn = $('#locateDismissBtn');
@@ -739,6 +742,22 @@
       const acc = accuracy && accuracy < 1000 ? ` ±${Math.round(accuracy)}m` : '';
       locEl.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}${acc}`;
     }
+  }
+
+  // ===== 底部面板折叠/展开 =====
+  function setupSheetToggle() {
+    const btn = $('#toggleSheetBtn');
+    const sheet = $('#bottomSheet');
+    if (!btn || !sheet) return;
+    // 恢复上次状态
+    if (sessionStorage.getItem('sheet_collapsed') === '1') {
+      sheet.classList.add('collapsed');
+    }
+    btn.addEventListener('click', () => {
+      sheet.classList.toggle('collapsed');
+      const isCollapsed = sheet.classList.contains('collapsed');
+      try { sessionStorage.setItem('sheet_collapsed', isCollapsed ? '1' : '0'); } catch (e) {}
+    });
   }
 
   function updateArrowUI(deg) {
