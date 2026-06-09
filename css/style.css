@@ -1721,3 +1721,169 @@ body {
 .bk-pending { background: #FFF3E0; color: #E65100; }
 .bk-ok { background: #E8F5E9; color: #2E7D32; }
 .bk-cancel { background: #FFEBEE; color: #C62828; }
+
+/* ===== 打卡集章 (P0) ===== */
+.tool-btn.tool-checkin {
+  background: linear-gradient(135deg, #FFC107, #FF8F00);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(255, 193, 7, 0.4);
+}
+.ck-card { width: 400px; max-height: 88vh; display: flex; flex-direction: column; padding: 0; }
+.ck-card .ai-header { padding: 14px 18px; }
+.ck-progress {
+  padding: 14px 18px;
+  text-align: center;
+  background: linear-gradient(135deg, #FFF8E1, #FFECB3);
+}
+.ck-prog-num {
+  font-size: 32px;
+  font-weight: 800;
+  color: #E65100;
+  line-height: 1;
+}
+.ck-prog-bar {
+  height: 8px;
+  background: rgba(0,0,0,0.08);
+  border-radius: 4px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+.ck-prog-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #FFB300, #FF6F00);
+  transition: width 0.4s;
+}
+.ck-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #555;
+  padding: 8px 18px 4px;
+  background: #fafafa;
+}
+.ck-rewards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 8px 14px;
+  background: #fafafa;
+}
+.ck-reward {
+  background: #fff;
+  border: 1px solid #FFE0B2;
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+  position: relative;
+}
+.ck-reward.reached {
+  background: linear-gradient(135deg, #FFF3E0, #FFE0B2);
+  border-color: #FF8F00;
+}
+.ck-rw-icon { font-size: 22px; }
+.ck-rw-name { font-size: 13px; font-weight: 700; color: #E65100; margin: 2px 0; }
+.ck-rw-desc { font-size: 11px; color: #888; }
+.ck-rw-tag {
+  font-size: 10px;
+  margin-top: 4px;
+  padding: 2px 4px;
+  border-radius: 6px;
+  display: inline-block;
+}
+.ck-reward.reached .ck-rw-tag { background: #2E7D32; color: #fff; }
+.ck-reward:not(.reached) .ck-rw-tag { background: #eee; color: #888; }
+
+.ck-points {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 8px 14px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #f8f9fa;
+}
+.ck-pt {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 12px;
+}
+.ck-pt.done {
+  background: #FFF3E0;
+  border-color: #FFB300;
+}
+.ck-pt-stamp {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ddd;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+.ck-pt.done .ck-pt-stamp {
+  color: #2E7D32;
+}
+.ck-pt-name {
+  color: #555;
+  font-size: 11px;
+  line-height: 1.2;
+  word-break: break-all;
+}
+.ck-logs {
+  padding: 8px 18px 12px;
+  background: #f8f9fa;
+  max-height: 120px;
+  overflow-y: auto;
+  font-size: 12px;
+  color: #555;
+}
+.ck-log-item { padding: 4px 0; border-bottom: 1px dashed #eee; }
+.ck-succ-reward {
+  background: linear-gradient(135deg, #FFF8E1, #FFE082);
+  border-radius: 8px;
+  padding: 10px;
+  margin: 10px 0;
+  text-align: center;
+  font-weight: 700;
+  color: #E65100;
+}
+
+/* 打卡气泡 (自动检测) */
+.checkin-toast {
+  position: fixed;
+  bottom: 100px;
+  left: 16px;
+  right: 16px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 9998;
+  animation: slideUpToast 0.3s ease;
+}
+@keyframes slideUpToast { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.ck-t-icon { font-size: 28px; line-height: 1; }
+.ck-t-body { flex: 1; }
+.ck-t-title { font-weight: 700; font-size: 14px; color: #333; }
+.ck-t-hint { font-size: 11px; color: #888; margin-top: 2px; }
+.ck-t-go {
+  background: #FF8F00;
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ck-t-close {
+  background: transparent;
+  border: 0;
+  font-size: 16px;
+  color: #aaa;
+  cursor: pointer;
+  padding: 0 4px;
+}

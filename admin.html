@@ -102,6 +102,12 @@
       <form id="activityForm">
         <div class="form-row">
           <input type="text" name="name" placeholder="活动名称 *" required />
+          <select name="kind" style="max-width:120px">
+            <option value="activity">⛺ 活动</option>
+            <option value="catering">🍽️ 餐饮</option>
+            <option value="hotel">🏨 酒店</option>
+            <option value="event">🎉 主题</option>
+          </select>
           <input type="number" name="price" placeholder="单价(元/人)" min="0" value="0" />
         </div>
         <div class="form-row">

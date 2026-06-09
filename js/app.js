@@ -498,6 +498,8 @@
     }
 
     userLatLng = [lat, lng];
+    // 广播 my-location 事件 (给 checkin.js 等用)
+    document.dispatchEvent(new CustomEvent('campsite-my-location', { detail: { lat, lng, accuracy } }));
 
     // 更新"我的状态"卡
     updateMyStatus(lat, lng, accuracy);

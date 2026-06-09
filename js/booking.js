@@ -6,6 +6,7 @@
 
   let activities = [];
   let bookings = [];  // 当前用户在本地提交的预约记录
+  let currentKind = 'all';
 
   // 加载本地预约记录
   function loadLocalBookings() {
@@ -38,13 +39,13 @@
     const btn = document.createElement('button');
     btn.className = 'tool-btn tool-booking';
     btn.id = 'toolBookingBtn';
-    btn.title = '活动预约';
-    btn.innerHTML = '<span class="tool-icon">📅</span><span class="tool-label">活动预约</span>';
+    btn.title = '活动预约 / 餐饮';
+    btn.innerHTML = '<span class="tool-icon">📅</span><span class="tool-label">预约</span>';
     btn.addEventListener('click', showBookingList);
     tb.appendChild(btn);
   }
 
-  // ===== 弹窗: 预约列表 =====
+  // ===== 弹窗: 预约列表 (含 kind 过滤) =====
   async function showBookingList() {
     if (document.getElementById('bookingModal')) return;
     activities = await fetchActivities();
@@ -54,12 +55,16 @@
     m.innerHTML = `
       <div class="modal-card booking-card">
         <div class="ai-header">
-          <span>📅 活动预约</span>
+          <span>📅 预约中心</span>
           <button class="ai-close" id="bookCloseBtn">✕</button>
         </div>
         <div class="booking-tabs">
-          <button class="book-tab active" data-tab="list">可预约</button>
-          <button class="book-tab" data-tab="mine">我的预约 (${bookings.length})</button>
+          <button class="book-tab active" data-kind="all">全部</button>
+          <button class="book-tab" data-kind="activity">⛺ 活动</button>
+          <button class="book-tab" data-kind="catering">🍽️ 餐饮</button>
+          <button class="book-tab" data-kind="hotel">🏨 酒店</button>
+          <button class="book-tab" data-kind="event">🎉 主题</button>
+          <button class="book-tab" data-tab="mine" data-kind="mine">📋 我的 (${bookings.length})</button>
         </div>
         <div class="booking-body" id="bookingBody"></div>
       </div>
@@ -71,7 +76,8 @@
       t.addEventListener('click', () => {
         m.querySelectorAll('.book-tab').forEach(x => x.classList.remove('active'));
         t.classList.add('active');
-        renderTab(t.dataset.tab, m);
+        currentKind = t.dataset.kind;
+        renderTab(currentKind === 'mine' ? 'mine' : 'list', m);
       });
     });
     renderTab('list', m);
@@ -89,16 +95,24 @@
 
   function renderList(body) {
     if (!activities.length) {
-      body.innerHTML = '<div class="empty-tip">暂无可预约活动<br><span class="muted">客服会不定期发布主题活动</span></div>';
+      body.innerHTML = '<div class="empty-tip">暂无可预约项目<br><span class="muted">客服会不定期发布活动/餐饮/酒店</span></div>';
       return;
     }
-    body.innerHTML = activities.map(a => {
+    // 按 kind 过滤
+    const filtered = currentKind === 'all' ? activities : activities.filter(a => (a.kind || 'activity') === currentKind);
+    if (!filtered.length) {
+      body.innerHTML = '<div class="empty-tip">该分类暂无项目</div>';
+      return;
+    }
+    body.innerHTML = filtered.map(a => {
       const slots = (a.slots || []).slice(0, 6).join(' / ') || '暂未排期';
+      const kindMap = { activity: '⛺ 活动', catering: '🍽️ 餐饮', hotel: '🏨 酒店', event: '🎉 主题' };
+      const kindLabel = kindMap[a.kind] || '活动';
       return `
         <div class="book-item">
           <div class="book-head">
             <div class="book-name">${CampData.escapeHtml(a.name)}</div>
-            <div class="book-cap">${a.capacity || 0} 人/期</div>
+            <div class="book-cap">${kindLabel} · ${a.capacity || 0} 人/期</div>
           </div>
           <div class="book-desc">${CampData.escapeHtml(a.description || '')}</div>
           <div class="book-meta">

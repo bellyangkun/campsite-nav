@@ -48,9 +48,11 @@
     }
     tbody.innerHTML = activities.map(a => {
       const slots = (a.slots || []).join(', ') || '-';
+      const kindMap = { activity: '⛺ 活动', catering: '🍽️ 餐饮', hotel: '🏨 酒店', event: '🎉 主题' };
+      const kindLabel = kindMap[a.kind] || (a.kind || '活动');
       return `
         <tr>
-          <td><strong>${CampData.escapeHtml(a.name)}</strong></td>
+          <td><strong>${CampData.escapeHtml(a.name)}</strong> <span class="bk-st bk-pending" style="font-size:10px">${kindLabel}</span></td>
           <td>¥${a.price || 0}</td>
           <td>${a.capacity || 0} 人</td>
           <td style="font-size:12px">${CampData.escapeHtml(slots)}</td>
@@ -67,6 +69,7 @@
         if (!a) return;
         const f = document.getElementById('activityForm');
         f.name.value = a.name;
+        f.kind.value = a.kind || 'activity';
         f.price.value = a.price || 0;
         f.capacity.value = a.capacity || 20;
         f.slots.value = (a.slots || []).join(',');
@@ -100,6 +103,7 @@
       const act = {
         id: f.dataset.editId || undefined,
         name: fd.get('name').trim(),
+        kind: fd.get('kind') || 'activity',
         price: parseInt(fd.get('price'), 10) || 0,
         capacity: parseInt(fd.get('capacity'), 10) || 20,
         description: (fd.get('description') || '').trim(),
