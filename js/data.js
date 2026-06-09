@@ -65,10 +65,15 @@
   ];
 
   const TYPE_META = {
-    entrance: { label: '入口', color: '#795548', icon: '🚪' },
-    activity: { label: '活动', color: '#4CAF50', icon: '⛺' },
-    service:  { label: '服务', color: '#2196F3', icon: '🛒' },
-    other:    { label: '其他', color: '#9E9E9E', icon: '📍' }
+    entrance:  { label: '入口',   color: '#795548', icon: '🚪' },
+    activity:  { label: '活动',   color: '#4CAF50', icon: '⛺' },
+    service:   { label: '服务',   color: '#2196F3', icon: '🛒' },
+    flash:     { label: '快闪',   color: '#FF5722', icon: '⚡' },
+    restaurant:{ label: '饭店',   color: '#FF9800', icon: '🍽️' },
+    toilet:    { label: '卫生间', color: '#607D8B', icon: '🚻' },
+    hotel:     { label: '酒店',   color: '#9C27B0', icon: '🏨' },
+    teahouse:  { label: '茶馆',   color: '#795548', icon: '🍵' },
+    other:     { label: '其他',   color: '#9E9E9E', icon: '📍' }
   };
 
   // ===== 内部缓存 (内存) =====
