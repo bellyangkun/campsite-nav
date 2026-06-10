@@ -178,6 +178,100 @@
         </label>
       </div>
     </div>
+
+    <!-- ===== 优惠券配置 + 核销 ===== -->
+    <div class="card">
+      <h2>🎫 优惠券配置</h2>
+      <p class="hint">配置可领取的优惠券模板。用户在前端"优惠券"按钮领券 → 凭券码在门店消费时由前台核销。</p>
+      <form id="couponTplForm" style="background:#f8f9fa;padding:14px;border-radius:10px;margin-bottom:16px">
+        <div class="form-row">
+          <input type="text" name="name" placeholder="券名 (例: 一尺花园咖啡 8 折) *" required style="flex:2" />
+          <select name="kind" style="max-width:100px">
+            <option value="discount">折扣</option>
+            <option value="cash">代金</option>
+            <option value="gift">体验</option>
+          </select>
+          <input type="number" name="discount" placeholder="折扣 0.8" step="0.1" min="0.1" max="0.99" style="max-width:80px" />
+          <input type="number" name="value" placeholder="金额 ¥" min="1" style="max-width:80px" />
+        </div>
+        <div class="form-row">
+          <input type="text" name="scope" placeholder="使用范围 (例: 一尺花园咖啡馆)" style="flex:2" />
+          <input type="number" name="minSpend" placeholder="最低消费" min="0" style="max-width:100px" />
+          <input type="number" name="validDays" placeholder="有效天数" min="1" value="30" style="max-width:90px" />
+          <input type="number" name="maxPerUser" placeholder="每用户限领" min="1" value="1" style="max-width:100px" />
+        </div>
+        <div class="form-row">
+          <input type="text" name="description" placeholder="说明文案 (例: 消费满 50 元可用)" style="flex:1" />
+        </div>
+        <div class="form-row">
+          <button type="submit" class="btn">➕ 添加优惠券模板</button>
+        </div>
+      </form>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>券名</th><th>类型</th><th>面值</th><th>使用范围</th><th>有效/限领</th><th>操作</th></tr>
+          </thead>
+          <tbody id="couponsTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🎟️ 券码核销</h2>
+      <p class="hint">顾客出示券码 → 输入 → 核销。核销后券立即失效, 不可恢复。</p>
+      <div class="form-row">
+        <input type="text" id="redeemCode" placeholder="输入顾客券码 (例: CXDTHORK)" style="flex:1;font-size:16px;letter-spacing:2px" />
+        <input type="text" id="redeemNote" placeholder="备注 (可选)" style="max-width:200px" />
+        <button type="button" id="redeemBtn" class="btn">✓ 核销</button>
+      </div>
+      <div id="redeemResult" style="margin-top:12px"></div>
+      <h3 style="margin-top:24px;font-size:14px;color:#666">最近核销记录 (倒序, 最多 30 条)</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>时间</th><th>券名</th><th>用户 ID</th><th>券码</th><th>备注</th></tr>
+          </thead>
+          <tbody id="redemptionsTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== AR 贴图管理 ===== -->
+    <div class="card">
+      <h2>📸 AR 合影贴图</h2>
+      <p class="hint">上传透明背景 PNG 贴图 (推荐 500x500), 用户拍照时自动合成。锚点决定贴图位置。</p>
+      <form id="arFrameForm" style="background:#f8f9fa;padding:14px;border-radius:10px;margin-bottom:16px">
+        <div class="form-row">
+          <input type="text" name="name" placeholder="贴图名 (例: 度假村 logo) *" required style="flex:1" />
+          <select name="anchor" style="max-width:140px">
+            <option value="center">居中</option>
+            <option value="bottom-right">右下 (推荐)</option>
+            <option value="bottom-left">左下</option>
+            <option value="top-right">右上</option>
+            <option value="top-left">左上</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="btn secondary" style="cursor:pointer">
+            🖼️ 选择 PNG 文件
+            <input type="file" id="arFrameFile" accept="image/png" style="display:none" />
+          </label>
+          <span id="arFrameFileName" style="color:#666;font-size:13px"></span>
+        </div>
+        <div class="form-row">
+          <button type="submit" class="btn">⬆️ 上传贴图</button>
+        </div>
+      </form>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>预览</th><th>名称</th><th>锚点</th><th>上传时间</th><th>操作</th></tr>
+          </thead>
+          <tbody id="arFramesTable"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <!-- 百度地图 JS API (浏览器端 AK) -->
@@ -187,6 +281,8 @@
   <script src="js/data.js"></script>
   <script src="js/admin.js"></script>
   <script src="js/admin-booking.js"></script>
+  <script src="js/admin-coupons.js"></script>
+  <script src="js/admin-ar.js"></script>
   <script src="js/admin-users.js"></script>
 </body>
 </html>
