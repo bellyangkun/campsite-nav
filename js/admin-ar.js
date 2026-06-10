@@ -23,32 +23,46 @@
   function bindClearAll() {
     const btn = document.getElementById('clearAllArBtn');
     if (!btn) return;
+    const updateBtn = () => {
+      if (frames.length === 0) {
+        btn.disabled = true;
+        btn.textContent = '🗑️ 一键清空所有贴图 (当前无贴图)';
+        btn.style.opacity = '0.5';
+      } else {
+        btn.disabled = false;
+        btn.textContent = '🗑️ 一键清空所有贴图 (' + frames.length + ')';
+        btn.style.opacity = '';
+      }
+    };
+    updateBtn();
     btn.addEventListener('click', async () => {
       if (frames.length === 0) {
         toast('已经没有贴图了', 'warning');
         return;
       }
-      if (!confirm('确认删除全部 ' + frames.length + ' 张贴图? (会同时清空所有 POI 的 logo 引用, 拍照会变成隐形合成)')) return;
+      if (!confirm('确认一键清空全部 ' + frames.length + ' 张贴图?\n(会同时清空所有 POI 的 logo 引用 + 全局默认 logo, 拍照会变成隐形合成)\n\n注意: 用户拍的照片不会被删除')) return;
       btn.disabled = true;
       btn.textContent = '⏳ 删除中...';
-      let ok = 0, fail = 0;
-      for (const f of frames.slice()) {
-        try {
-          const res = await fetch(API_BASE + '/api/ar/frames/' + encodeURIComponent(f.id), {
-            method: 'DELETE',
-            headers: { 'Authorization': 'Bearer ' + ADMIN_TOKEN }
-          });
-          const json = await res.json();
-          if (json.code === 0) ok++;
-          else fail++;
-        } catch (e) { fail++; }
+      try {
+        // 直接调一键清空 bulk 端点, 一次搞定 (不需要循环单删)
+        const res = await fetch(API_BASE + '/api/ar/frames', {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + ADMIN_TOKEN }
+        });
+        const json = await res.json();
+        if (json.code !== 0) throw new Error(json.message || '清空失败');
+        const data = json.data || {};
+        await loadFrames();
+        if (typeof window.refreshArSettings === 'function') window.refreshArSettings();
+        toast('✓ 已清空 ' + (data.framesRemoved || 0) + ' 张贴图 + 清 ' + (data.pointsCleared || 0) + ' 个 POI logo 引用', 'success');
+      } catch (e) {
+        toast('✗ 清空失败: ' + e.message, 'error');
+        console.error('clearAll failed', e);
       }
-      await loadFrames();
-      if (typeof window.refreshArSettings === 'function') window.refreshArSettings();
-      toast('✓ 已清空 ' + ok + ' 张贴图' + (fail ? ', 失败 ' + fail : ''), fail ? 'error' : 'success');
-      btn.disabled = false;
-      btn.textContent = '🗑️ 一键清空所有贴图';
+      updateBtn();
     });
+    // 把 updateBtn 暴露出去, renderFrames 之后能刷新按钮状态
+    window.__updateClearAllBtn = updateBtn;
   }
 
   function bindForm() {
@@ -130,6 +144,8 @@
   function renderFrames() {
     const tbody = document.getElementById('arFramesTable');
     if (!tbody) return;
+    // 渲染完同步刷新"一键清空"按钮状态 (灰显 + 提示当前数)
+    if (typeof window.__updateClearAllBtn === 'function') window.__updateClearAllBtn();
     if (!frames.length) {
       tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;padding:20px">还没有贴图, 上面传一张</td></tr>';
       return;
