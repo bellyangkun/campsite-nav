@@ -2,6 +2,7 @@
   'use strict';
 
   const $ = (sel) => document.querySelector(sel);
+  const API_BASE = (typeof window !== 'undefined' && window.CAMPSITE_API) || '';
   const ADMIN_PASSWORD = '8888';
   const AUTH_KEY = 'campsite_admin_authed';
 
