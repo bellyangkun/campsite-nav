@@ -255,11 +255,14 @@
         </div>
         <div class="form-row">
           <label class="btn secondary" style="cursor:pointer">
-            🖼️ 选择 PNG 文件
-            <input type="file" id="arFrameFile" accept="image/png" style="display:none" />
+            🖼️ 选择图片文件
+            <input type="file" id="arFrameFile" accept="image/png,image/jpeg,image/jpg,image/webp" style="display:none" />
           </label>
           <span id="arFrameFileName" style="color:#666;font-size:13px"></span>
         </div>
+        <p class="hint" style="margin:8px 0 0;font-size:12px">
+          支持 PNG / JPEG / WebP。iPhone 微信如弹出"安全文档"选择器,请在"文件"App 中浏览并选择 PNG 文件。
+        </p>
         <div class="form-row">
           <button type="submit" class="btn">⬆️ 上传贴图</button>
         </div>

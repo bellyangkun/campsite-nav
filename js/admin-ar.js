@@ -26,13 +26,15 @@
       fileInput.addEventListener('change', (e) => {
         const f = e.target.files && e.target.files[0];
         if (!f) return;
-        if (f.type !== 'image/png') {
-          toast('请选 PNG 文件 (透明背景)', 'error');
+        // 接受 PNG / JPEG / WebP (iOS 微信下 JPEG 也常作为照片存在)
+        const okTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+        if (!okTypes.includes(f.type)) {
+          toast('请选 PNG / JPEG / WebP 图片 (iPhone 用户请选 "照片图库" 选原图, 或从 "文件" App 选 PNG)', 'error');
           fileInput.value = '';
           return;
         }
-        if (f.size > 2 * 1024 * 1024) {
-          toast('PNG 太大 (>2MB), 请用 tinypng.com 压缩', 'error');
+        if (f.size > 4 * 1024 * 1024) {
+          toast('图片太大 (>4MB), 请用 tinypng.com / compressor.io 压缩', 'error');
           fileInput.value = '';
           return;
         }
