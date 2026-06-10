@@ -186,20 +186,32 @@
   function renderTable() {
     const tbody = $('#pointsTable');
     tbody.innerHTML = '';
-    points.forEach((p) => {
+    // 用已排序的列表, 给每行编号 + 上下移按钮
+    const sorted = CampData.getSortedPoints();
+    sorted.forEach((p, i) => {
       const meta = CampData.getTypeMeta(p.type);
       const tr = document.createElement('tr');
+      tr.draggable = true;
+      tr.dataset.id = p.id;
       tr.innerHTML = `
+        <td>
+          <div style="display:flex;align-items:center;gap:4px">
+            <button class="btn-icon move-up" data-id="${p.id}" data-dir="up" ${i === 0 ? 'disabled' : ''} title="上移">▲</button>
+            <button class="btn-icon move-down" data-id="${p.id}" data-dir="down" ${i === sorted.length - 1 ? 'disabled' : ''} title="下移">▼</button>
+            <span style="color:#999;font-size:11px;margin-left:2px">${(typeof p.order === 'number') ? p.order : '—'}</span>
+          </div>
+        </td>
         <td>${meta.icon} ${meta.label}</td>
         <td>${CampData.escapeHtml(p.name)}</td>
         <td>${p.lat.toFixed(6)}</td>
         <td>${p.lng.toFixed(6)}</td>
         <td>${CampData.escapeHtml(p.description || '')}</td>
-        <td><button class="btn small danger" data-id="${p.id}">删除</button></td>
+        <td><button class="btn small danger" data-id="${p.id}" data-action="delete">删除</button></td>
       `;
       tbody.appendChild(tr);
     });
-    tbody.querySelectorAll('button[data-id]').forEach(btn => {
+    // 删除按钮
+    tbody.querySelectorAll('button[data-action="delete"]').forEach(btn => {
       btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-id');
         if (!confirm('确认删除该活动点？')) return;
@@ -210,6 +222,97 @@
           showSyncMsg('✓ 已删除', 'success');
         } catch (err) {
           alert('删除失败：' + err.message);
+        }
+      });
+    });
+    // 上下移按钮
+    tbody.querySelectorAll('button[data-dir]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const dir = btn.getAttribute('data-dir');
+        if (btn.disabled) return;
+        try {
+          points = await CampData.movePoint(id, dir);
+          if (map) try { refreshMapMarkers(); } catch (er) { console.error(er); }
+          renderTable();
+          showSyncMsg('✓ 已' + (dir === 'up' ? '上移' : '下移'), 'success');
+        } catch (err) {
+          alert('排序失败：' + err.message);
+        }
+      });
+    });
+    // HTML5 drag/drop (桌面端更好用)
+    bindDragReorder(tbody, sorted);
+  }
+
+  // ===== 拖拽重排 (HTML5 drag/drop API) =====
+  let dragSrcId = null;
+  function bindDragReorder(tbody, sorted) {
+    tbody.querySelectorAll('tr[draggable="true"]').forEach(tr => {
+      tr.addEventListener('dragstart', (e) => {
+        dragSrcId = tr.dataset.id;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', dragSrcId);
+        tr.style.opacity = '0.4';
+      });
+      tr.addEventListener('dragend', () => {
+        tr.style.opacity = '';
+      });
+      tr.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        tr.style.borderTop = '2px solid #2196F3';
+      });
+      tr.addEventListener('dragleave', () => {
+        tr.style.borderTop = '';
+      });
+      tr.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        tr.style.borderTop = '';
+        const srcId = e.dataTransfer.getData('text/plain');
+        const dstId = tr.dataset.id;
+        if (!srcId || !dstId || srcId === dstId) return;
+        try {
+          // 把 srcId 移到 dstId 之前 (即 src 排序到 dst 之前)
+          const points = CampData.getPointsSync().slice();
+          const src = points.find(p => p.id === srcId);
+          const dst = points.find(p => p.id === dstId);
+          if (!src || !dst) return;
+          const srcOrder = (typeof src.order === 'number') ? src.order : 0;
+          const dstOrder = (typeof dst.order === 'number') ? dst.order : 0;
+          // 直接修改 src.order, 落在 dst 之前
+          // 简化策略: 取 dst 的上一个相邻点的 order + 1
+          const sortedNow = CampData.getSortedPoints();
+          const dstIdx = sortedNow.findIndex(p => p.id === dstId);
+          if (dstIdx === -1) return;
+          let newOrder;
+          if (dstIdx === 0) {
+            newOrder = (typeof sortedNow[0].order === 'number' ? sortedNow[0].order : 100) - 1;
+          } else {
+            const prev = sortedNow[dstIdx - 1];
+            const cur = sortedNow[dstIdx];
+            const prevOrder = (typeof prev.order === 'number') ? prev.order : 0;
+            const curOrder = (typeof cur.order === 'number') ? cur.order : prevOrder + 100;
+            // 落在 prev 和 cur 之间
+            if (curOrder - prevOrder >= 2) {
+              newOrder = prevOrder + Math.floor((curOrder - prevOrder) / 2);
+            } else {
+              // 间隔 < 2, 整体规整化
+              await CampData.normalizeOrder();
+              const reSorted = CampData.getSortedPoints();
+              const newDstIdx = reSorted.findIndex(p => p.id === dstId);
+              const newPrev = reSorted[newDstIdx - 1];
+              const newCur = reSorted[newDstIdx];
+              newOrder = (newPrev.order + newCur.order) / 2;
+            }
+          }
+          await CampData.updatePoint(srcId, { order: newOrder });
+          points = await CampData.getPoints();
+          if (map) try { refreshMapMarkers(); } catch (er) { console.error(er); }
+          renderTable();
+          showSyncMsg('✓ 已重排', 'success');
+        } catch (err) {
+          alert('拖拽排序失败：' + err.message);
         }
       });
     });
@@ -251,6 +354,22 @@
       div.id = 'syncStatus';
       div.style.cssText = 'position:fixed;top:0;left:0;right:0;text-align:center;padding:6px;background:#e3f2fd;color:#1565c0;font-size:13px;z-index:9999;transition:opacity 0.3s';
       document.body.prepend(div);
+    }
+
+    // 重置排序按钮
+    const normBtn = $('#normalizeOrderBtn');
+    if (normBtn) {
+      normBtn.addEventListener('click', async () => {
+        if (!confirm('把所有活动点的 order 规整化为 100/200/300... (不会改变当前顺序)?')) return;
+        try {
+          points = await CampData.normalizeOrder();
+          refreshMapMarkers();
+          renderTable();
+          showSyncMsg('✓ 已重置排序', 'success');
+        } catch (err) {
+          alert('重置排序失败：' + err.message);
+        }
+      });
     }
 
     $('#resetBtn').addEventListener('click', async () => {

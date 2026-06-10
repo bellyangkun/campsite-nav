@@ -251,6 +251,26 @@ html, body {
 .btn.danger { background: #f44336; }
 .btn.small { padding: 6px 10px; font-size: 13px; }
 
+.btn-icon {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 12px;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #555;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, color .15s;
+}
+.btn-icon:hover:not(:disabled) { background: #2196F3; color: #fff; border-color: #2196F3; }
+.btn-icon:disabled { opacity: 0.3; cursor: not-allowed; }
+tbody tr[draggable="true"] { cursor: grab; }
+tbody tr[draggable="true"]:active { cursor: grabbing; }
+
 .table-wrap { overflow-x: auto; }
 table {
   width: 100%;

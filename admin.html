@@ -78,10 +78,15 @@
 
     <div class="card">
       <h2>现有活动点</h2>
+      <p class="hint">点 ▲▼ 上下移调整顺序, 或直接拖动整行重排。数字列是当前 order 值 (越小越靠前)。</p>
+      <div class="form-row">
+        <button type="button" id="normalizeOrderBtn" class="btn secondary">🔢 重置排序 (规整化为 100/200/300...)</button>
+      </div>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
+              <th style="width:120px">顺序</th>
               <th>类型</th>
               <th>名称</th>
               <th>纬度</th>

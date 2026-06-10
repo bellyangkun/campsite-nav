@@ -57,13 +57,13 @@
   }
 
   const DEFAULT_POINTS = [
-    { id: 'p1', name: '度假村主入口', lat: 31.481527, lng: 121.286954, description: '霜竹公路518号主入口，停车与签到处', type: 'entrance' },
-    { id: 'p2', name: 'Neverland 儿童乐园', lat: 31.481558, lng: 121.286868, description: '5700㎡无动力亲子乐园，金属滑梯、绳网、挖沙', type: 'activity' },
-    { id: 'p3', name: '湖边露营烧烤', lat: 31.481486, lng: 121.287068, description: '湖边烧烤野奢露营、皮划艇、CS团建 (联康路277弄18号)', type: 'activity' },
-    { id: 'p4', name: '路亚钓鱼池', lat: 31.483293, lng: 121.283545, description: '改造鱼塘，鲈鱼/鳜鱼/虹鳟/梭鲈鱼，¥168/天', type: 'activity' },
-    { id: 'p5', name: '一尺花园咖啡馆', lat: 31.479885, lng: 121.289259, description: '温室花园咖啡，扶荔宫，餐饮+打卡', type: 'service' },
-    { id: 'p6', name: '林下泵道', lat: 31.482161, lng: 121.290561, description: '上海最大林下泵道，初级/标准/腾跃赛道', type: 'activity' },
-    { id: 'p7', name: '中央草坪', lat: 31.481916, lng: 121.287555, description: '露营、飞盘、野餐、亲子活动', type: 'activity' }
+    { id: 'p1', name: '度假村主入口', lat: 31.481527, lng: 121.286954, description: '霜竹公路518号主入口，停车与签到处', type: 'entrance', order: 100 },
+    { id: 'p2', name: 'Neverland 儿童乐园', lat: 31.481558, lng: 121.286868, description: '5700㎡无动力亲子乐园，金属滑梯、绳网、挖沙', type: 'activity', order: 200 },
+    { id: 'p3', name: '湖边露营烧烤', lat: 31.481486, lng: 121.287068, description: '湖边烧烤野奢露营、皮划艇、CS团建 (联康路277弄18号)', type: 'activity', order: 300 },
+    { id: 'p4', name: '路亚钓鱼池', lat: 31.483293, lng: 121.283545, description: '改造鱼塘，鲈鱼/鳜鱼/虹鳟/梭鲈鱼，¥168/天', type: 'activity', order: 400 },
+    { id: 'p5', name: '一尺花园咖啡馆', lat: 31.479885, lng: 121.289259, description: '温室花园咖啡，扶荔宫，餐饮+打卡', type: 'service', order: 500 },
+    { id: 'p6', name: '林下泵道', lat: 31.482161, lng: 121.290561, description: '上海最大林下泵道，初级/标准/腾跃赛道', type: 'activity', order: 600 },
+    { id: 'p7', name: '中央草坪', lat: 31.481916, lng: 121.287555, description: '露营、飞盘、野餐、亲子活动', type: 'activity', order: 700 }
   ];
 
   const TYPE_META = {
@@ -176,9 +176,9 @@
   async function getPoints() {
     if (!memoryCache) {
       const r = await syncFromServer();
-      return r.points;
+      return sortByOrder(r.points);
     }
-    return memoryCache.points;
+    return sortByOrder(memoryCache.points);
   }
 
   // 暴露调试用
@@ -199,15 +199,15 @@
    * 后续 syncFromServer 完成后, 应调用 refreshAll() 重新渲染
    */
   function getPointsSync() {
-    if (memoryCache) return memoryCache.points;
+    if (memoryCache) return sortByOrder(memoryCache.points);
     // 尝试 localStorage 兜底 (但空数组视为"无有效数据", 用默认)
     const local = loadLocal();
     if (Array.isArray(local) && local.length > 0) {
       memoryCache = { points: local, source: 'local', updatedAt: Date.now() };
-      return memoryCache.points;
+      return sortByOrder(memoryCache.points);
     }
     memoryCache = { points: JSON.parse(JSON.stringify(DEFAULT_POINTS)), source: 'default', updatedAt: Date.now() };
-    return memoryCache.points;
+    return sortByOrder(memoryCache.points);
   }
 
   function getDataSource() {
@@ -218,6 +218,12 @@
     const points = getPointsSync();
     if (typeof Wgs84ToGcj02 === 'undefined') return points;
     return Wgs84ToGcj02.wgs84ToGcj02Batch(points);
+  }
+
+  // ===== 排序: admin 用 =====
+  // 取出 sortByOrder (admin.js 用)
+  function getSortedPoints() {
+    return sortByOrder(getPointsSync());
   }
 
   function escapeHtml(str) {
@@ -246,6 +252,20 @@
     if ('petFriendly' in p && typeof p.petFriendly !== 'boolean') {
       throw new Error('petFriendly 必须是布尔');
     }
+    if ('order' in p && (typeof p.order !== 'number' || !Number.isFinite(p.order))) {
+      throw new Error('order 必须是数字');
+    }
+  }
+
+  // ===== 排序: 按 order 升序 (无 order 字段的兜底用 id 字符串排)
+  function sortByOrder(points) {
+    return points.slice().sort((a, b) => {
+      const ao = (typeof a.order === 'number') ? a.order : 999999;
+      const bo = (typeof b.order === 'number') ? b.order : 999999;
+      if (ao !== bo) return ao - bo;
+      // 同 order 时用 id 兜底, 保证顺序稳定
+      return String(a.id).localeCompare(String(b.id));
+    });
   }
 
   function genId() {
@@ -258,6 +278,11 @@
       validatePoint(point);
       const points = getPointsSync().slice();
       point.id = point.id || genId();
+      // 自动算 order: max(order) + 100, 没 order 时按当前顺序累加
+      if (typeof point.order !== 'number') {
+        const maxOrder = points.reduce((m, p) => (typeof p.order === 'number' && p.order > m ? p.order : m), 0);
+        point.order = maxOrder + 100;
+      }
       points.push(point);
       await saveAndSync(points);
       return points;
@@ -274,6 +299,54 @@
     points[idx] = Object.assign({}, points[idx], updates, { id });
     await saveAndSync(points);
     return points;
+  }
+
+  // ===== 上移 / 下移 =====
+  // 把 id 这条往上挪一位, 实际是交换 order
+  async function movePoint(id, direction) {
+    const sorted = sortByOrder(getPointsSync());
+    const idx = sorted.findIndex(p => p.id === id);
+    if (idx === -1) throw new Error('活动点不存在');
+    let swapIdx;
+    if (direction === 'up') swapIdx = idx - 1;
+    else if (direction === 'down') swapIdx = idx + 1;
+    else throw new Error('direction 必须是 up 或 down');
+    if (swapIdx < 0 || swapIdx >= sorted.length) {
+      // 已在最顶/最底, 不动
+      return sorted;
+    }
+    const a = sorted[idx];
+    const b = sorted[swapIdx];
+    const aOrder = (typeof a.order === 'number') ? a.order : 999999;
+    const bOrder = (typeof b.order === 'number') ? b.order : 999999;
+    // 如果当前 order 是 100 间隔, 用平均; 否则直接交换
+    let newAOrder, newBOrder;
+    if (aOrder !== bOrder && Math.abs(aOrder - bOrder) >= 2) {
+      // 直接交换
+      newAOrder = bOrder;
+      newBOrder = aOrder;
+    } else {
+      // order 重叠/相邻, 重新规整化: 100 步长
+      // 简化: 把 a 设为 b 的下一个, 把 b 设为 a 的下一个
+      newAOrder = bOrder + 1;
+      newBOrder = aOrder + 1;
+    }
+    const points = getPointsSync().slice();
+    const ai = points.findIndex(p => p.id === a.id);
+    const bi = points.findIndex(p => p.id === b.id);
+    points[ai].order = newAOrder;
+    points[bi].order = newBOrder;
+    await saveAndSync(points);
+    return points;
+  }
+
+  // ===== 重排 order 字段 (规整化为 100 步长)
+  async function normalizeOrder() {
+    const points = getPointsSync().slice();
+    const sorted = sortByOrder(points);
+    sorted.forEach((p, i) => { p.order = (i + 1) * 100; });
+    await saveAndSync(sorted);
+    return sorted;
   }
 
   async function deletePoint(id) {
@@ -352,10 +425,13 @@
     getPoints,
     getPointsSync,
     getDisplayPoints,
+    getSortedPoints,
     getDataSource,
     syncFromServer,
     addPoint,
     updatePoint,
+    movePoint,
+    normalizeOrder,
     deletePoint,
     resetToDefault,
     importJSON,
