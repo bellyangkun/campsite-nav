@@ -15,8 +15,40 @@
 
   function init() {
     bindForm();
+    bindClearAll();
     loadFrames();
     loadSettings();
+  }
+
+  function bindClearAll() {
+    const btn = document.getElementById('clearAllArBtn');
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      if (frames.length === 0) {
+        toast('已经没有贴图了', 'warning');
+        return;
+      }
+      if (!confirm('确认删除全部 ' + frames.length + ' 张贴图? (会同时清空所有 POI 的 logo 引用, 拍照会变成隐形合成)')) return;
+      btn.disabled = true;
+      btn.textContent = '⏳ 删除中...';
+      let ok = 0, fail = 0;
+      for (const f of frames.slice()) {
+        try {
+          const res = await fetch(API_BASE + '/api/ar/frames/' + encodeURIComponent(f.id), {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + ADMIN_TOKEN }
+          });
+          const json = await res.json();
+          if (json.code === 0) ok++;
+          else fail++;
+        } catch (e) { fail++; }
+      }
+      await loadFrames();
+      if (typeof window.refreshArSettings === 'function') window.refreshArSettings();
+      toast('✓ 已清空 ' + ok + ' 张贴图' + (fail ? ', 失败 ' + fail : ''), fail ? 'error' : 'success');
+      btn.disabled = false;
+      btn.textContent = '🗑️ 一键清空所有贴图';
+    });
   }
 
   function bindForm() {
@@ -115,13 +147,22 @@
       b.addEventListener('click', async () => {
         if (!confirm('删除该贴图?')) return;
         const id = b.dataset.id;
-        frames = frames.filter(f => f.id !== id);
-        // 简单方案: 全部覆盖 (后端没单独的 DELETE, 这里暂时只删表显示, 后端留着文件)
-        // 实际生产应该补 DELETE /api/ar/frames/:id, 先打个 TODO
+        try {
+          const res = await fetch(API_BASE + '/api/ar/frames/' + encodeURIComponent(id), {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + ADMIN_TOKEN }
+          });
+          const json = await res.json();
+          if (json.code !== 0) throw new Error(json.message);
+          frames = json.data.frames || [];
+          if (typeof window.refreshArSettings === 'function') window.refreshArSettings();
+          toast('✓ 已删除 (POI 引用也清空, 共 ' + json.data.pointsCleared + ' 个)', 'success');
+        } catch (err) {
+          alert('删除失败: ' + err.message);
+          // 回滚
+          loadFrames();
+        }
         renderFrames();
-      // 同步刷默认 logo 下拉
-      if (typeof window.refreshArSettings === 'function') window.refreshArSettings();
-        toast('⚠ 已从列表移除 (文件仍在 /ar_shots/ 待清理)', 'warning');
       });
     });
   }

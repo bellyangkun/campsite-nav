@@ -242,6 +242,10 @@
     <div class="card">
       <h2>📸 AR 合影贴图</h2>
       <p class="hint">上传透明背景 PNG 贴图 (推荐 500x500), 用户拍照时自动合成。锚点决定贴图位置。</p>
+      <div class="form-row" style="margin-top:8px">
+        <button type="button" id="clearAllArBtn" class="btn danger" style="background:#c62828;color:#fff">🗑️ 一键清空所有贴图</button>
+        <span class="hint" style="margin:0">⚠ 慎用: 会删除全部贴图 + 所有 POI 的 logo 引用</span>
+      </div>
       <form id="arFrameForm" style="background:#f8f9fa;padding:14px;border-radius:10px;margin-bottom:16px">
         <div class="form-row">
           <input type="text" name="name" placeholder="贴图名 (例: 度假村 logo) *" required style="flex:1" />
