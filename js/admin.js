@@ -186,63 +186,128 @@
   function renderTable() {
     const tbody = $('#pointsTable');
     tbody.innerHTML = '';
-    // 用已排序的列表, 给每行编号 + 上下移按钮
-    const sorted = CampData.getSortedPoints();
-    sorted.forEach((p, i) => {
-      const meta = CampData.getTypeMeta(p.type);
-      const tr = document.createElement('tr');
-      tr.draggable = true;
-      tr.dataset.id = p.id;
-      tr.innerHTML = `
-        <td>
-          <div style="display:flex;align-items:center;gap:4px">
-            <button class="btn-icon move-up" data-id="${p.id}" data-dir="up" ${i === 0 ? 'disabled' : ''} title="上移">▲</button>
-            <button class="btn-icon move-down" data-id="${p.id}" data-dir="down" ${i === sorted.length - 1 ? 'disabled' : ''} title="下移">▼</button>
-            <span style="color:#999;font-size:11px;margin-left:2px">${(typeof p.order === 'number') ? p.order : '—'}</span>
-          </div>
-        </td>
-        <td>${meta.icon} ${meta.label}</td>
-        <td>${CampData.escapeHtml(p.name)}</td>
-        <td>${p.lat.toFixed(6)}</td>
-        <td>${p.lng.toFixed(6)}</td>
-        <td>${CampData.escapeHtml(p.description || '')}</td>
-        <td><button class="btn small danger" data-id="${p.id}" data-action="delete">删除</button></td>
-      `;
-      tbody.appendChild(tr);
+    // 拉 AR frames + settings (用于 logo 下拉)
+    let arFrames = [];
+    Promise.all([
+      fetch(API_BASE + '/api/ar/frames').then(r => r.json()).catch(() => ({ code: 0, data: { frames: [] } })),
+      fetch(API_BASE + '/api/ar/settings').then(r => r.json()).catch(() => ({ code: 0, data: {} }))
+    ]).then(([f, s]) => {
+      arFrames = (f.code === 0 ? f.data.frames : []) || [];
+      renderRows();
     });
-    // 删除按钮
-    tbody.querySelectorAll('button[data-action="delete"]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-id');
-        if (!confirm('确认删除该活动点？')) return;
-        try {
-          points = await CampData.deletePoint(id);
-          refreshMapMarkers();
-          renderTable();
-          showSyncMsg('✓ 已删除', 'success');
-        } catch (err) {
-          alert('删除失败：' + err.message);
-        }
+    function renderRows() {
+      const sorted = CampData.getSortedPoints();
+      sorted.forEach((p, i) => {
+        const meta = CampData.getTypeMeta(p.type);
+        const tr = document.createElement('tr');
+        tr.draggable = true;
+        tr.dataset.id = p.id;
+        const currentLogo = (p.logoFrameId === undefined || p.logoFrameId === '') ? '' :
+                            (p.logoFrameId === null ? '__none__' : p.logoFrameId);
+        const opts = ['<option value="">(全局默认)</option>', '<option value="__none__">(不贴图)</option>'];
+        arFrames.forEach(f => {
+          const sel = (currentLogo === f.id) ? ' selected' : '';
+          opts.push(`<option value="${CampData.escapeHtml(f.id)}"${sel}>${CampData.escapeHtml(f.name)}</option>`);
+        });
+        if (currentLogo === '__none__') opts[1] = '<option value="__none__" selected>(不贴图)</option>';
+        tr.innerHTML = `
+          <td>
+            <div style="display:flex;align-items:center;gap:4px">
+              <button class="btn-icon move-up" data-id="${p.id}" data-dir="up" ${i === 0 ? 'disabled' : ''} title="上移">▲</button>
+              <button class="btn-icon move-down" data-id="${p.id}" data-dir="down" ${i === sorted.length - 1 ? 'disabled' : ''} title="下移">▼</button>
+              <span style="color:#999;font-size:11px;margin-left:2px">${(typeof p.order === 'number') ? p.order : '—'}</span>
+            </div>
+          </td>
+          <td>${meta.icon} ${meta.label}</td>
+          <td>${CampData.escapeHtml(p.name)}</td>
+          <td>${p.lat.toFixed(6)}</td>
+          <td>${p.lng.toFixed(6)}</td>
+          <td>${CampData.escapeHtml(p.description || '')}</td>
+          <td>
+            <select class="logo-select" data-id="${CampData.escapeHtml(p.id)}" style="max-width:140px;padding:4px;font-size:12px">
+              ${opts.join('')}
+            </select>
+          </td>
+          <td><button class="btn small danger" data-id="${p.id}" data-action="delete">删除</button></td>
+        `;
+        tbody.appendChild(tr);
       });
-    });
-    // 上下移按钮
-    tbody.querySelectorAll('button[data-dir]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-id');
-        const dir = btn.getAttribute('data-dir');
-        if (btn.disabled) return;
-        try {
-          points = await CampData.movePoint(id, dir);
-          if (map) try { refreshMapMarkers(); } catch (er) { console.error(er); }
-          renderTable();
-          showSyncMsg('✓ 已' + (dir === 'up' ? '上移' : '下移'), 'success');
-        } catch (err) {
-          alert('排序失败：' + err.message);
-        }
+      // 删除按钮
+      tbody.querySelectorAll('button[data-action="delete"]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          if (!confirm('确认删除该活动点？')) return;
+          try {
+            points = await CampData.deletePoint(id);
+            refreshMapMarkers();
+            renderTable();
+            showSyncMsg('✓ 已删除', 'success');
+          } catch (err) {
+            alert('删除失败：' + err.message);
+          }
+        });
       });
-    });
-    // HTML5 drag/drop (桌面端更好用)
-    bindDragReorder(tbody, sorted);
+      // 上下移按钮
+      tbody.querySelectorAll('button[data-dir]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          const dir = btn.getAttribute('data-dir');
+          if (btn.disabled) return;
+          try {
+            points = await CampData.movePoint(id, dir);
+            if (map) try { refreshMapMarkers(); } catch (er) { console.error(er); }
+            renderTable();
+            showSyncMsg('✓ 已' + (dir === 'up' ? '上移' : '下移'), 'success');
+          } catch (err) {
+            alert('排序失败：' + err.message);
+          }
+        });
+      });
+      // logo 下拉变更: PATCH 后端
+      tbody.querySelectorAll('select.logo-select').forEach(sel => {
+        sel.addEventListener('change', async () => {
+          const id = sel.dataset.id;
+          let v = sel.value;
+          if (v === '') {
+            // 删 logoFrameId
+            await patchLogo(id, { logoFrameId: null });
+          } else if (v === '__none__') {
+            // 显式 null (不贴图)
+            await patchLogo(id, { logoFrameId: null });
+          } else {
+            await patchLogo(id, { logoFrameId: v });
+          }
+        });
+      });
+      // HTML5 drag/drop (桌面端更好用)
+      bindDragReorder(tbody, sorted);
+    }
+  }
+
+  async function patchLogo(pointId, body) {
+    try {
+      const res = await fetch(API_BASE + '/api/points/' + encodeURIComponent(pointId) + '/logo', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer campsite-nav-2026' },
+        body: JSON.stringify(body)
+      });
+      const json = await res.json();
+      if (json.code !== 0) throw new Error(json.message);
+      // 同步本地缓存
+      const p = points.find(x => x.id === pointId);
+      if (p) {
+        if (body.logoFrameId === null) {
+          delete p.logoFrameId;
+          delete p.logoAnchor;
+        } else if (body.logoFrameId) {
+          p.logoFrameId = body.logoFrameId;
+        }
+      }
+      showSyncMsg('✓ logo 已更新', 'success');
+    } catch (err) {
+      alert('logo 更新失败: ' + err.message);
+      renderTable();  // 回滚 UI
+    }
   }
 
   // ===== 拖拽重排 (HTML5 drag/drop API) =====

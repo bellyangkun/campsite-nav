@@ -977,6 +977,17 @@ tr:active { background: #f8f8f8; }
 .nav-btn-secondary:hover {
   box-shadow: 0 4px 14px rgba(230, 74, 25, 0.4);
 }
+.nav-btn-ar {
+  background: linear-gradient(135deg, #8E24AA, #6A1B9A);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(142, 36, 170, 0.25);
+}
+.nav-btn-ar:hover {
+  box-shadow: 0 4px 14px rgba(142, 36, 170, 0.4);
+}
+.nav-btn-ar[data-point-id=""] {
+  opacity: 0.55;
+}
 
 /* ===== 底部面板折叠 ===== */
 .bottom-sheet {
@@ -2300,3 +2311,96 @@ body {
   margin-bottom: 12px;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== v0.8 AR 按位置选 logo ===== */
+.ar-point-list {
+  max-height: 50vh;
+  overflow-y: auto;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+.ar-point {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background .12s;
+}
+.ar-point:last-child { border-bottom: none; }
+.ar-point:hover { background: #F3E5F5; }
+.ar-point.active { background: #F3E5F5; border-left: 3px solid #8E24AA; }
+.ar-point-icon {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border: 2px solid;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  background: #fff;
+}
+.ar-point-info { flex: 1; min-width: 0; }
+.ar-point-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ar-point-meta {
+  font-size: 11px;
+  color: #999;
+  margin-top: 2px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ar-point-dist { color: #1565C0; font-weight: 600; }
+.ar-point-logo { color: #6A1B9A; }
+.ar-point-footer {
+  display: flex;
+  gap: 8px;
+}
+.ar-choosen-point {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #F3E5F5;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+.ar-change-point-btn, .ar-change-logo-btn {
+  margin-left: auto;
+  background: #fff;
+  border: 1px solid #BA68C8;
+  color: #6A1B9A;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.ar-change-logo-btn {
+  margin: 0 0 12px 0;
+  width: 100%;
+  padding: 10px;
+  background: #F3E5F5;
+  font-weight: 600;
+}
+.ar-logo-tag {
+  text-align: center;
+  padding: 8px 12px;
+  background: #E8F5E9;
+  color: #2E7D32;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}

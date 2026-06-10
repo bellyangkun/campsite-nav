@@ -92,6 +92,7 @@
               <th>纬度</th>
               <th>经度</th>
               <th>描述</th>
+              <th>AR logo</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -270,6 +271,31 @@
           </thead>
           <tbody id="arFramesTable"></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- ===== AR 全局默认 logo ===== -->
+    <div class="card">
+      <h2>🎯 AR 默认 logo</h2>
+      <p class="hint">用户进 AR 合影时, 如果所在 POI 没单独配 logo, 就用这里设的全局默认。空 → 隐形合成 (返回原图)。</p>
+      <div class="form-row">
+        <label style="flex:1">
+          <span style="display:block;font-size:12px;color:#666;margin-bottom:4px">默认 logo</span>
+          <select id="arDefaultFrame" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px">
+            <option value="">(不设)</option>
+          </select>
+        </label>
+        <label style="max-width:180px">
+          <span style="display:block;font-size:12px;color:#666;margin-bottom:4px">锚点</span>
+          <select id="arDefaultAnchor" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px">
+            <option value="bottom-right">右下 (推荐)</option>
+            <option value="bottom-left">左下</option>
+            <option value="top-right">右上</option>
+            <option value="top-left">左上</option>
+            <option value="center">居中</option>
+          </select>
+        </label>
+        <button type="button" id="arDefaultSaveBtn" class="btn">💾 保存默认</button>
       </div>
     </div>
   </div>

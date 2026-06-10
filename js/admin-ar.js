@@ -16,6 +16,7 @@
   function init() {
     bindForm();
     loadFrames();
+    loadSettings();
   }
 
   function bindForm() {
@@ -85,6 +86,8 @@
       if (json.code !== 0) throw new Error(json.message);
       frames = json.data.frames || [];
       renderFrames();
+      // 同步刷默认 logo 下拉
+      if (typeof window.refreshArSettings === 'function') window.refreshArSettings();
     } catch (e) {
       console.error('load ar frames failed', e);
     }
@@ -114,6 +117,8 @@
         // 简单方案: 全部覆盖 (后端没单独的 DELETE, 这里暂时只删表显示, 后端留着文件)
         // 实际生产应该补 DELETE /api/ar/frames/:id, 先打个 TODO
         renderFrames();
+      // 同步刷默认 logo 下拉
+      if (typeof window.refreshArSettings === 'function') window.refreshArSettings();
         toast('⚠ 已从列表移除 (文件仍在 /ar_shots/ 待清理)', 'warning');
       });
     });
@@ -129,9 +134,51 @@
     }
   }
 
+  // ===== 全局默认 logo 设置 =====
+  function loadSettings() {
+    fetch(API_BASE + '/api/ar/settings')
+      .then(r => r.json())
+      .then(json => {
+        if (json.code !== 0) return;
+        const sel = document.getElementById('arDefaultFrame');
+        if (!sel) return;
+        // 重建下拉
+        sel.innerHTML = '<option value="">(不设, 无 logo 时返回原图)</option>' +
+          frames.map(f => `<option value="${escapeHtml(f.id)}" ${f.id === json.data.defaultFrameId ? 'selected' : ''}>${escapeHtml(f.name)}</option>`).join('');
+        const anchorSel = document.getElementById('arDefaultAnchor');
+        if (anchorSel) anchorSel.value = json.data.defaultAnchor || 'bottom-right';
+      })
+      .catch(() => {});
+  }
+
+  function bindSettings() {
+    const saveBtn = document.getElementById('arDefaultSaveBtn');
+    if (!saveBtn) return;
+    saveBtn.addEventListener('click', async () => {
+      const frameId = document.getElementById('arDefaultFrame').value;
+      const anchor = document.getElementById('arDefaultAnchor').value;
+      try {
+        const res = await fetch(API_BASE + '/api/ar/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', ...AUTH_HEADERS },
+          body: JSON.stringify({ defaultFrameId: frameId || null, defaultAnchor: anchor })
+        });
+        const json = await res.json();
+        if (json.code !== 0) throw new Error(json.message);
+        toast('✓ 已保存默认 logo', 'success');
+      } catch (err) {
+        toast('保存失败: ' + err.message, 'error');
+      }
+    });
+  }
+
+  // 暴露给 admin.js 用于刷新 frame 列表 (admin-ar.js init 之后会被调用)
+  window.refreshArSettings = loadSettings;
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', () => { bindSettings(); init(); });
   } else {
+    bindSettings();
     init();
   }
 })();

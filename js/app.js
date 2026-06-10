@@ -104,6 +104,23 @@
       const driveBtn = $('#baiduDriveBtn');
       if (driveBtn) driveBtn.addEventListener('click', () => openBaiduNav('driving'));
 
+      // AR 合影按钮: 把当前目标 POI 传给 ar.js
+      const arShootBtn = $('#arShootBtn');
+      if (arShootBtn) {
+        arShootBtn.addEventListener('click', () => {
+          const pid = arShootBtn.dataset.pointId;
+          if (!pid) {
+            showToast('请先在地图上选一个目标地点', 'error');
+            return;
+          }
+          if (window.ArShoot && typeof window.ArShoot.openForPoint === 'function') {
+            window.ArShoot.openForPoint(pid);
+          } else {
+            showToast('AR 模态还没加载好, 请稍后再试', 'error');
+          }
+        });
+      }
+
       // 微信内: 步行按钮下方显示提示
       if (/MicroMessenger/i.test(navigator.userAgent)) {
         const hint = $('#navWeixinHint');
@@ -296,6 +313,9 @@
   // ===== 路线与方向 =====
   function onDestChange() {
     selectedDestId = $('#destSelect').value || null;
+    // 同步 AR 拍照按钮的 pointId
+    const arBtn = document.getElementById('arShootBtn');
+    if (arBtn) arBtn.dataset.pointId = selectedDestId || '';
     drawRoute();
   }
 
