@@ -77,8 +77,12 @@
       body.innerHTML = `
         <div style="text-align:center;padding:40px 20px">
           <div style="font-size:48px;margin-bottom:16px">📸</div>
-          <div style="color:#666;font-size:15px;margin-bottom:8px">暂无可用贴图</div>
-          <div style="color:#999;font-size:13px">贴图由管理员在 admin 后台上传<br>(.png 透明背景, 推荐 500x500)</div>
+          <div style="color:#c62828;font-size:15px;font-weight:600;margin-bottom:8px">暂无可用贴图</div>
+          <div style="color:#666;font-size:13px;line-height:1.6;margin-bottom:12px">需要先在 <b>admin 后台</b> 上传贴图</div>
+          <div style="color:#999;font-size:12px;line-height:1.6">
+            路径: admin.html (密码 8888) → 滚到最底<br>
+            → <b>"📸 AR 合影贴图"</b> → 上传透明背景 PNG (推荐 500x500)
+          </div>
         </div>
       `;
       return;
@@ -153,7 +157,8 @@
     const file = e.target.files && e.target.files[0];
     if (!file) return;
     if (!/^image\//.test(file.type)) {
-      showToast('请选图片文件', 'error');
+      showToast('请选图片文件 (HEIC 手机可能不支持, 请到相册选 JPEG/PNG)', 'error');
+      reportDiag('bad-type', '非 image/*', { type: file.type, name: file.name, size: file.size });
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -163,8 +168,10 @@
     document.getElementById('arProgress').style.display = '';
     document.getElementById('arResult').style.display = 'none';
     try {
+      reportDiag('photo-chosen', 'start', { type: file.type, size: file.size });
       // 客户端缩放到 1080 宽 (减少 base64 体积, 后端合成更快)
       const dataUrl = await resizeAndToDataUrl(file, 1080);
+      reportDiag('resize-ok', 'compressed', { len: dataUrl.length });
       const url = await shootWithFrame(dataUrl, chosenFrame.id);
       const img = document.getElementById('arResultImg');
       img.src = API_BASE + url;
@@ -174,6 +181,7 @@
     } catch (err) {
       document.getElementById('arProgress').style.display = 'none';
       showToast('合成失败: ' + err.message, 'error');
+      reportDiag('shoot-fail', err.message, { stack: err.stack });
     }
   }
 
@@ -195,7 +203,10 @@
           ctx.drawImage(img, 0, 0, w, h);
           resolve(c.toDataURL('image/jpeg', 0.88));
         };
-        img.onerror = () => reject(new Error('图片加载失败'));
+        img.onerror = () => {
+          // HEIC / 不支持的格式 — canvas 没法解码
+          reject(new Error('图片格式不支持 (iPhone HEIC 需先到相册转 JPEG)'));
+        };
         img.src = fr.result;
       };
       fr.onerror = () => reject(new Error('文件读取失败'));
@@ -210,7 +221,9 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, frameId, photoDataUrl })
     });
-    const json = await res.json();
+    let json;
+    try { json = await res.json(); }
+    catch (e) { throw new Error('服务端响应非 JSON (HTTP ' + res.status + ')'); }
     if (json.code !== 0) throw new Error(json.message || 'HTTP ' + res.status);
     return json.data.url;
   }
@@ -228,8 +241,27 @@
     t.textContent = msg;
     t.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:' + (type === 'error' ? '#c62828' : '#2e7d32') + ';color:#fff;padding:10px 20px;border-radius:8px;z-index:99999;font-size:14px';
     document.body.appendChild(t);
-    setTimeout(() => t.remove(), 2500);
+    setTimeout(() => t.remove(), 3000);
   }
+
+  // 自动上报错误到 /api/diag, 方便排查
+  function reportDiag(kind, message, extra) {
+    try {
+      fetch(API_BASE + '/api/diag', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'ar-' + kind, message, extra, ua: navigator.userAgent, ts: Date.now() }),
+        keepalive: true
+      }).catch(() => {});
+    } catch (e) {}
+  }
+
+  // 全局错误兜底
+  window.addEventListener('error', (e) => {
+    if (String(e.filename || '').indexOf('ar.js') >= 0 || String(e.message || '').indexOf('AR') >= 0) {
+      reportDiag('window-error', e.message, { file: e.filename, line: e.lineno, stack: e.error && e.error.stack });
+    }
+  });
 
   // 启动
   if (document.readyState === 'loading') {

@@ -1264,18 +1264,24 @@ body {
 /* ===== P0 工具栏 (P0-3 呼叫 / P0-4 疏散 / P0-5 AI) ===== */
 .quick-toolbar {
   display: flex;
-  gap: 8px;
-  padding: 8px 16px 4px;
+  gap: 6px;
+  padding: 8px 8px 4px;
   border-top: 1px dashed rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;  /* 隐藏滚动条 */
 }
+.quick-toolbar::-webkit-scrollbar { display: none; }
 .tool-btn {
-  flex: 1;
+  flex: 0 0 auto;
+  min-width: 60px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 10px 6px;
+  padding: 8px 10px;
   border: 0;
   border-radius: 10px;
   font-size: 13px;
@@ -1289,11 +1295,11 @@ body {
   transform: scale(0.95);
 }
 .tool-btn .tool-icon {
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1;
 }
 .tool-btn .tool-label {
-  font-size: 12px;
+  font-size: 11px;
   white-space: nowrap;
 }
 .tool-btn.tool-call {
