@@ -59,9 +59,38 @@
     refreshUsers();
     setInterval(refreshUsers, 60000);
   }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
+  // 等 shell boot + 监听 section-enter 自动刷新
+  function _bootWhenReady() {
     init();
+    // 进入本模块对应的 section 时, 自动刷一次数据
+    document.addEventListener('admin-section-enter', (e) => {
+      const myHash = 'admin-users.js'.replace('admin-', '').replace('.js', '');
+      // admin-booking.js 对应 #activities 和 #bookings (因为都涉及预约)
+      const watch = WATCH_HASHES || [myHash];
+      if (watch.includes(e.detail.hash)) {
+        try { onSectionEnter && onSectionEnter(e.detail.hash); } catch (er) { console.error('admin-users.js section-enter refresh failed', er); }
+      }
+    });
+  }
+  if (window.CampAdminShell) {
+    // shell 已加载, 但还没 boot, 等 shell boot 完
+    if (sessionStorage.getItem('campsite_admin_authed') === '1' && document.getElementById('adminContent') && document.getElementById('adminContent').style.display !== 'none') {
+      _bootWhenReady();
+    } else {
+      // 等登录通过后 shell 会触发
+      const _watch = setInterval(() => {
+        if (document.getElementById('adminContent') && document.getElementById('adminContent').style.display !== 'none') {
+          clearInterval(_watch);
+          _bootWhenReady();
+        }
+      }, 100);
+    }
+  } else {
+    // shell 还没加载 (老版 admin.html?), 退回 DOMContentLoaded
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
   }
 })();

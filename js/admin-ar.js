@@ -234,10 +234,33 @@
   // 暴露给 admin.js 用于刷新 frame 列表 (admin-ar.js init 之后会被调用)
   window.refreshArSettings = loadSettings;
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { bindSettings(); init(); });
-  } else {
+  function _bootWhenReady() {
     bindSettings();
     init();
+    // 进入 ar / ar-default 时刷一次
+    document.addEventListener('admin-section-enter', (e) => {
+      if (e.detail.hash === 'ar' || e.detail.hash === 'ar-default') {
+        try { loadFrames(); loadSettings(); } catch (er) { console.error('ar refresh failed', er); }
+      }
+    });
+  }
+  if (window.CampAdminShell) {
+    if (sessionStorage.getItem('campsite_admin_authed') === '1' && document.getElementById('adminContent') && document.getElementById('adminContent').style.display !== 'none') {
+      _bootWhenReady();
+    } else {
+      const _watch = setInterval(() => {
+        if (document.getElementById('adminContent') && document.getElementById('adminContent').style.display !== 'none') {
+          clearInterval(_watch);
+          _bootWhenReady();
+        }
+      }, 100);
+    }
+  } else {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => { bindSettings(); init(); });
+    } else {
+      bindSettings();
+      init();
+    }
   }
 })();

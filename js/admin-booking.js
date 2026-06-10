@@ -208,9 +208,37 @@
     setInterval(refreshBookings, 30000);
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
+  // 等 shell boot + 监听 section-enter 自动刷新
+  // booking 模块管 activities + bookings 两个 section
+  const WATCH_HASHES = ['activities', 'bookings'];
+  function _bootWhenReady() {
     init();
+    // 进入本模块对应的 section 时, 自动刷一次数据
+    document.addEventListener('admin-section-enter', (e) => {
+      if (WATCH_HASHES.includes(e.detail.hash)) {
+        try { onSectionEnter && onSectionEnter(e.detail.hash); } catch (er) { console.error('admin-booking.js section-enter refresh failed', er); }
+      }
+    });
+  }
+  if (window.CampAdminShell) {
+    // shell 已加载, 但还没 boot, 等 shell boot 完
+    if (sessionStorage.getItem('campsite_admin_authed') === '1' && document.getElementById('adminContent') && document.getElementById('adminContent').style.display !== 'none') {
+      _bootWhenReady();
+    } else {
+      // 等登录通过后 shell 会触发
+      const _watch = setInterval(() => {
+        if (document.getElementById('adminContent') && document.getElementById('adminContent').style.display !== 'none') {
+          clearInterval(_watch);
+          _bootWhenReady();
+        }
+      }, 100);
+    }
+  } else {
+    // shell 还没加载 (老版 admin.html?), 退回 DOMContentLoaded
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
   }
 })();

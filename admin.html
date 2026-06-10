@@ -23,12 +23,10 @@
   </div>
 
   <div class="admin-wrap" id="adminContent" style="display:none">
-    <div class="admin-header">
-      <h1>🏕️ 活动点管理</h1>
-      <a class="btn secondary" href="index.html">返回导航</a>
-    </div>
+    <!-- 顶部导航条由 js/admin-shell.js 注入 -->
 
-    <div class="card">
+    <div class="card" data-section="points">
+      <h2>📍 活动点 - 地图选点</h2>
       <div class="admin-map-wrap" id="pickMap"></div>
       <div class="hint">提示：点击地图可自动填入经纬度。也可以手动输入。</div>
 
@@ -76,8 +74,8 @@
       </form>
     </div>
 
-    <div class="card">
-      <h2>现有活动点</h2>
+    <div class="card" data-section="points">
+      <h2>📍 活动点 - 列表管理</h2>
       <p class="hint">点 ▲▼ 上下移调整顺序, 或直接拖动整行重排。数字列是当前 order 值 (越小越靠前)。</p>
       <div class="form-row">
         <button type="button" id="normalizeOrderBtn" class="btn secondary">🔢 重置排序 (规整化为 100/200/300...)</button>
@@ -102,7 +100,7 @@
     </div>
 
     <!-- ===== P1 活动配置 + 预约管理 ===== -->
-    <div class="card">
+    <div class="card" data-section="activities">
       <h2>📅 活动配置</h2>
       <p class="hint">配置可预约活动 (主题/价格/日期段/容量), 顾客端"活动预约"立即可见。</p>
       <form id="activityForm">
@@ -137,7 +135,7 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" data-section="users">
       <h2>👥 用户列表</h2>
       <p class="hint">手机号注册的用户, 可见打卡数/最后活跃时间。点击手机号可拨打。</p>
       <div class="form-row">
@@ -153,7 +151,7 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" data-section="bookings">
       <h2>📋 预约审批</h2>
       <div class="form-row">
         <button type="button" id="refreshBookingsBtn" class="btn">🔄 刷新预约列表</button>
@@ -168,8 +166,8 @@
       </div>
     </div>
 
-    <div class="card">
-      <h2>数据导入 / 导出</h2>
+    <div class="card" data-section="data">
+      <h2>💾 数据导入 / 导出</h2>
       <p class="hint">导出 JSON 可用于备份；选择 JSON 文件可批量导入并覆盖现有数据。</p>
       <div class="form-row">
         <button type="button" id="exportBtn" class="btn">📥 导出 JSON</button>
@@ -181,7 +179,7 @@
     </div>
 
     <!-- ===== 优惠券配置 + 核销 ===== -->
-    <div class="card">
+    <div class="card" data-section="coupons">
       <h2>🎫 优惠券配置</h2>
       <p class="hint">配置可领取的优惠券模板。用户在前端"优惠券"按钮领券 → 凭券码在门店消费时由前台核销。</p>
       <form id="couponTplForm" style="background:#f8f9fa;padding:14px;border-radius:10px;margin-bottom:16px">
@@ -218,7 +216,7 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" data-section="redeem">
       <h2>🎟️ 券码核销</h2>
       <p class="hint">顾客出示券码 → 输入 → 核销。核销后券立即失效, 不可恢复。</p>
       <div class="form-row">
@@ -239,7 +237,7 @@
     </div>
 
     <!-- ===== AR 贴图管理 ===== -->
-    <div class="card">
+    <div class="card" data-section="ar">
       <h2>📸 AR 合影贴图</h2>
       <p class="hint">上传透明背景 PNG 贴图 (推荐 500x500), 用户拍照时自动合成。锚点决定贴图位置。</p>
       <div class="form-row" style="margin-top:8px">
@@ -282,7 +280,7 @@
     </div>
 
     <!-- ===== AR 全局默认 logo ===== -->
-    <div class="card">
+    <div class="card" data-section="ar-default">
       <h2>🎯 AR 默认 logo</h2>
       <p class="hint">用户进 AR 合影时, 如果所在 POI 没单独配 logo, 就用这里设的全局默认。空 → 隐形合成 (返回原图)。</p>
       <div class="form-row">
@@ -312,6 +310,8 @@
   <script src="js/coords.js"></script>
   <script src="js/baidu-map.js"></script>
   <script src="js/data.js"></script>
+  <!-- admin-shell 必须先于所有 admin-*.js, 提供登录门 + 顶部导航 + hash 路由 -->
+  <script src="js/admin-shell.js"></script>
   <script src="js/admin.js"></script>
   <script src="js/admin-booking.js"></script>
   <script src="js/admin-coupons.js"></script>

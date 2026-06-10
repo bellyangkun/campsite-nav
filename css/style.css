@@ -195,7 +195,7 @@ html, body {
 .admin-wrap {
   max-width: 980px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 70px 16px 16px;  /* 顶部留出 topnav 高度 */
 }
 .admin-header {
   display: flex;
@@ -207,6 +207,110 @@ html, body {
   margin: 0;
   font-size: 20px;
 }
+
+/* ===== 后台顶部固定导航条 (admin-shell.js 注入) ===== */
+.admin-topnav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  background: linear-gradient(135deg, #5d4037 0%, #3e2723 100%);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.admin-topnav-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  height: 54px;
+  padding: 0 14px;
+  color: #fff;
+  gap: 12px;
+}
+.admin-topnav-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.admin-topnav-brand-icon { font-size: 18px; }
+.admin-topnav-brand-text { color: #ffe0b2; }
+
+.admin-topnav-burger {
+  display: none;
+  background: transparent;
+  border: 0;
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.admin-topnav-tabs {
+  display: flex;
+  flex: 1;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.admin-topnav-tabs::-webkit-scrollbar { height: 3px; }
+.admin-topnav-tabs::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+
+.admin-topnav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  color: rgba(255,255,255,0.7);
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.admin-topnav-tab:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+.admin-topnav-tab.active {
+  background: rgba(255,224,178,0.18);
+  color: #ffe0b2;
+  font-weight: 600;
+}
+.admin-topnav-tab-icon { font-size: 14px; }
+
+/* 移动端汉堡菜单 */
+@media (max-width: 720px) {
+  .admin-topnav-burger { display: block; }
+  .admin-topnav-tabs {
+    position: absolute;
+    top: 54px;
+    left: 0; right: 0;
+    flex-direction: column;
+    background: #3e2723;
+    padding: 8px;
+    gap: 4px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.2s ease-out;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+  .admin-topnav-tabs.open {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  .admin-topnav-tab {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+}
+
 .card {
   background: #fff;
   border-radius: 12px;
