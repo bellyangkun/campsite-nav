@@ -107,7 +107,9 @@
     const latestHtml = stats.latest.length ? stats.latest.map(c => {
       const t = new Date(c.timestamp).toLocaleString('zh-CN', { hour12: false });
       const autoTag = c.auto ? ' <span class="bk-st bk-ok" style="font-size:9px">自动</span>' : ' <span class="bk-st bk-pending" style="font-size:9px">手动</span>';
-      return `<div class="ck-log-item">🏆 ${CampData.escapeHtml(c.pointName)}${autoTag} <span class="muted">${t}</span></div>`;
+      const shotTag = c.shotUrl ? ' <span class="bk-st" style="font-size:9px;background:#FFE0B2;color:#E65100">📸</span>' : '';
+      const shotThumb = c.shotUrl ? `<img src="${API}${c.shotUrl}" style="width:36px;height:36px;border-radius:4px;object-fit:cover;vertical-align:middle;margin-left:6px" />` : '';
+      return `<div class="ck-log-item">🏆 ${CampData.escapeHtml(c.pointName)}${autoTag}${shotTag} <span class="muted">${t}</span>${shotThumb}</div>`;
     }).join('') : '<div class="empty-tip">还没打卡, 出发吧!</div>';
 
     const m = document.createElement('div');
@@ -124,7 +126,7 @@
           <div class="ck-prog-bar"><div class="ck-prog-fill" style="width:${Math.round(stats.unique / points.length * 100)}%"></div></div>
         </div>
         <p class="muted" style="text-align:center;padding:6px 14px;background:#FFF8E1;font-size:11px">
-          📍 自动打卡: 进入 POI ${RADIUS}m 范围 + 停留 ${DWELL_REQUIRED}s 即可, 无需点按钮
+          📍 拍照打卡: 进入 POI ${RADIUS}m 范围 + 停留 ${DWELL_REQUIRED}s, 弹拍照模态 → 拍照+贴图 → 提交得印章
         </p>
         <div class="ck-section-title">🎁 奖励梯度</div>
         <div class="ck-rewards">${rewardHtml}</div>
@@ -148,10 +150,15 @@
     const t = document.createElement('div');
     t.id = 'checkinLightToast';
     t.className = 'ck-light-toast';
-    const next = REWARDS.find(r => r.n > userTotal);
-    const rewardLine = next
-      ? `还差 ${next.n - userTotal} 个印章 → ${next.icon} ${next.name}`
-      : `🏆 已达成全部奖励!`;
+    let rewardLine;
+    if (userTotal == null) {
+      rewardLine = '已记录本次打卡';
+    } else {
+      const next = REWARDS.find(r => r.n > userTotal);
+      rewardLine = next
+        ? `还差 ${next.n - userTotal} 个印章 → ${next.icon} ${next.name}`
+        : `🏆 已达成全部奖励!`;
+    }
     t.innerHTML = `
       <div class="ck-lt-icon">🏆</div>
       <div class="ck-lt-body">
@@ -183,35 +190,92 @@
     setInterval(checkDwell, CHECK_INTERVAL);
   }
 
+  // 当前弹出的拍照打卡模态 (避免重复弹)
+  let activePromptPointId = null;
   async function checkDwell() {
     if (!userLat || !userLng || !lastPoints) return;
     const submitted = getSubmittedSet();
     const now = Date.now();
     for (const p of lastPoints) {
       if (submitted.has(p.id)) continue;  // 24h 已打过
+      // 如果已经在弹该 POI 的模态, 跳过
+      if (activePromptPointId === p.id) continue;
       const d = haversine(userLat, userLng, p.lat, p.lng);
       const state = dwellState.get(p.id);
       if (d <= RADIUS) {
         // 在范围内
         if (!state) {
           // 首次进入
-          dwellState.set(p.id, { enteredAt: now, dwellMs: 0, submitted: false });
-        } else if (!state.submitted) {
+          dwellState.set(p.id, { enteredAt: now, dwellMs: 0, submitted: false, prompted: false });
+        } else if (!state.prompted) {
           state.dwellMs = now - state.enteredAt;
-          // 达 30s → 静默 POST
+          // 达 30s → 弹拍照模态 (v0.9.2 新逻辑: 拍照才算打卡)
           if (state.dwellMs >= DWELL_REQUIRED * 1000) {
-            state.submitted = true;
-            submitAuto(p, state.dwellMs);
+            state.prompted = true;
+            activePromptPointId = p.id;
+            showPhotoCheckinPrompt(p);
           }
         }
       } else {
-        // 离开范围 → 清零
-        if (state) dwellState.delete(p.id);
+        // 离开范围 → 清零 (但已经弹过模态的 POI 暂不重弹, 避免短时间内重复)
+        if (state && !state.prompted) dwellState.delete(p.id);
       }
     }
   }
 
-  async function submitAuto(p, dwellMs) {
+  // ===== 弹拍照打卡模态: 复用 ar.js 的 showArModal, 拍照完回调 =====
+  function showPhotoCheckinPrompt(point) {
+    // 关已有
+    if (document.getElementById('photoCheckinModal')) {
+      document.getElementById('photoCheckinModal').remove();
+    }
+    const m = document.createElement('div');
+    m.id = 'photoCheckinModal';
+    m.className = 'modal-backdrop';
+    m.innerHTML = `
+      <div class="modal-card pc-card">
+        <div class="ai-header" style="background:linear-gradient(135deg,#FF6F00,#FF8F00)">
+          <span>🏆 打卡 ${CampData.escapeHtml(point.name)}</span>
+          <button class="ai-close" id="pcCloseBtn">✕</button>
+        </div>
+        <div class="pc-body" id="pcBody">
+          <div style="text-align:center;padding:20px 0">
+            <div style="font-size:48px">📍</div>
+            <div style="font-size:16px;font-weight:600;margin:10px 0">您已在 ${CampData.escapeHtml(point.name)} 停留 30 秒</div>
+            <div class="muted" style="font-size:13px;margin-bottom:16px">拍照 + 选贴图 即可完成打卡<br>获得 1 枚印章 + 奖励梯度</div>
+            <button id="pcOpenCamera" class="btn" style="width:100%;font-size:15px;padding:14px;background:linear-gradient(135deg,#FF6F00,#FF8F00);color:#fff;border:none;border-radius:8px;cursor:pointer">📸 开始拍照打卡</button>
+            <button id="pcSkip" class="btn" style="width:100%;margin-top:8px;background:none;border:1px solid #ddd;color:#888;border-radius:8px;padding:10px;cursor:pointer;font-size:13px">稍后再说</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(m);
+    m.querySelector('#pcCloseBtn').addEventListener('click', () => { m.remove(); activePromptPointId = null; });
+    m.querySelector('#pcSkip').addEventListener('click', () => { m.remove(); activePromptPointId = null; });
+    m.addEventListener('click', (e) => { if (e.target === m) { m.remove(); activePromptPointId = null; } });
+    m.querySelector('#pcOpenCamera').addEventListener('click', () => {
+      // 关提示, 调 ar.js showArModal(锁定 pointId), 拍完回调
+      m.remove();
+      openArForCheckin(point);
+    });
+  }
+
+  // 调 ar.js 拍照模态, 拍完后 callback submitCheckin
+  function openArForCheckin(point) {
+    if (window.ArShoot && typeof window.ArShoot.showArModal === 'function') {
+      window.ArShoot.showArModal({
+        pointId: point.id,
+        checkinCtx: { point, userLat, userLng, dwellMs: DWELL_REQUIRED * 1000 }
+      });
+    } else {
+      console.warn('[Checkin] window.ArShoot.showArModal 不存在, 请确认 ar.js 加载顺序');
+      showLightToast(point, null);
+    }
+  }
+
+  // 拍照后由 ar.js 回调 (window.campAppSubmitCheckin = submitCheckin)
+  async function submitCheckin(ctx) {
+    const { point, shotUrl, shotFrameId, userLat: ulat, userLng: ulng, dwellMs } = ctx;
     const userId = getUserId();
     try {
       const res = await fetch(API + '/checkins', {
@@ -219,35 +283,39 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId,
-          pointId: p.id,
-          userLat,
-          userLng,
-          dwellTime: Math.round(dwellMs / 1000),
-          auto: true
+          pointId: point.id,
+          userLat: ulat,
+          userLng: ulng,
+          dwellTime: Math.round((dwellMs || DWELL_REQUIRED * 1000) / 1000),
+          auto: true,
+          shotUrl,
+          shotFrameId
         })
       });
       const j = await res.json();
       if (j.code === 0) {
-        // 成功
-        markSubmitted(p.id);
-        showLightToast(p, j.userTotal);
-        // 通知地图层 (如果监听)
-        document.dispatchEvent(new CustomEvent('campsite-checkin-success', { detail: { point: p, userTotal: j.userTotal } }));
+        markSubmitted(point.id);
+        showLightToast(point, j.userTotal);
+        document.dispatchEvent(new CustomEvent('campsite-checkin-success', { detail: { point, userTotal: j.userTotal, shotUrl } }));
+        return j;
       } else if (j.code === 409) {
-        // 24h 已打过
-        markSubmitted(p.id);
+        markSubmitted(point.id);
+        showLightToast(point, null);  // 已打过, 不增 total
+        return j;
       } else {
-        // 失败: 不标 submitted, 下次 dwell 再试
-        const state = dwellState.get(p.id);
-        if (state) state.submitted = false;
-        console.warn('[Checkin] auto fail', j);
+        showLightToast(point, null);
+        console.warn('[Checkin] submit fail', j);
+        return j;
       }
     } catch (e) {
-      const state = dwellState.get(p.id);
-      if (state) state.submitted = false;
-      console.warn('[Checkin] auto net err', e);
+      console.warn('[Checkin] submit net err', e);
+      throw e;
+    } finally {
+      activePromptPointId = null;
     }
   }
+  // 暴露给 ar.js 在拍完后回调
+  window.campAppSubmitCheckin = submitCheckin;
 
   // ===== 工具: haversine =====
   function haversine(lat1, lng1, lat2, lng2) {

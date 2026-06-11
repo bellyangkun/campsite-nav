@@ -47,9 +47,12 @@
   let currentSettings = {};
   let chosenPoint = null;  // {id, name, lat, lng, logoFrameId, logoAnchor}
   let currentUserLatLng = null;
+  let currentCheckinCtx = null;  // v0.9.2: 拍照打卡上下文 (point/userLat/userLng/dwellMs), 拍完后弹"提交打卡"
+  let lastShotResult = null;  // {url, frameId, frameName} 拍完的合成结果, 打卡按钮用
 
   async function showArModal(opts) {
     opts = opts || {};
+    currentCheckinCtx = opts.checkinCtx || null;  // v0.9.2: 保留打卡上下文
     if (document.getElementById('arModal')) return;
     const m = document.createElement('div');
     m.id = 'arModal';
@@ -332,11 +335,17 @@
       const dataUrl = await resizeAndToDataUrl(file, 1080);
       reportDiag('resize-ok', 'compressed', { len: dataUrl.length });
       const url = await shootWithFrame(dataUrl, chosenPoint ? chosenPoint.id : null, chosenPoint ? chosenPoint._manualFrameId : null);
+      // v0.9.2: 记下 shot 结果 + 决定用的 frameId (用于后续提交打卡)
+      const usedFrameId = (chosenPoint && chosenPoint._manualFrameId) || (chosenPoint && chosenPoint.logoFrameId) || (currentSettings && currentSettings.defaultFrameId) || null;
+      const usedFrame = usedFrameId ? currentFrames.find(f => f.id === usedFrameId) : null;
+      lastShotResult = { url, frameId: usedFrameId, frameName: usedFrame ? usedFrame.name : null };
       const img = document.getElementById('arResultImg');
       img.src = API_BASE + url;
       img.dataset.fullUrl = API_BASE + url;
       document.getElementById('arProgress').style.display = 'none';
       document.getElementById('arResult').style.display = '';
+      // v0.9.2: 如果是从打卡流程进来的, 渲染"提交打卡"按钮
+      renderCheckinButton();
     } catch (err) {
       document.getElementById('arProgress').style.display = 'none';
       showToast('合成失败: ' + err.message, 'error');
@@ -420,9 +429,64 @@
     }
   });
 
-  // ===== 暴露给外部: 标记点点击触发 =====
+  // ===== v0.9.2 拍照打卡: 拍完渲染提交按钮 =====
+  function renderCheckinButton() {
+    const actions = document.querySelector('.ar-result-actions');
+    if (!actions) return;
+    // 移除旧的打卡按钮
+    const old = document.getElementById('arCheckinBtn');
+    if (old) old.remove();
+    if (!currentCheckinCtx) return;  // 不是从打卡流程进来
+    const btn = document.createElement('button');
+    btn.id = 'arCheckinBtn';
+    btn.className = 'btn';
+    btn.style.cssText = 'background:linear-gradient(135deg,#FF6F00,#FF8F00);color:#fff;flex:2;font-weight:600;';
+    btn.textContent = '🏆 用此照片提交打卡';
+    btn.addEventListener('click', submitCheckinFromAr);
+    actions.appendChild(btn);
+  }
+  async function submitCheckinFromAr() {
+    if (!currentCheckinCtx || !lastShotResult) {
+      showToast('打卡上下文丢失, 请重新进入打卡', 'error');
+      return;
+    }
+    const btn = document.getElementById('arCheckinBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ 提交中...'; }
+    try {
+      const ctx = Object.assign({}, currentCheckinCtx, {
+        shotUrl: lastShotResult.url,
+        shotFrameId: lastShotResult.frameId
+      });
+      const j = await window.campAppSubmitCheckin(ctx);
+      if (j && j.code === 0) {
+        showToast('🏆 打卡成功 +1 印章', 'success');
+        // 1.5s 后关拍照模态
+        setTimeout(() => {
+          const m = document.getElementById('arModal');
+          if (m) m.remove();
+          currentCheckinCtx = null;
+          lastShotResult = null;
+        }, 1500);
+      } else if (j && j.code === 409) {
+        showToast('该 POI 24h 内已打卡过', 'error');
+        setTimeout(() => {
+          const m = document.getElementById('arModal');
+          if (m) m.remove();
+        }, 1200);
+      } else {
+        showToast('提交失败: ' + (j && j.message || '未知'), 'error');
+        if (btn) { btn.disabled = false; btn.textContent = '🏆 用此照片提交打卡'; }
+      }
+    } catch (e) {
+      showToast('网络错误: ' + e.message, 'error');
+      if (btn) { btn.disabled = false; btn.textContent = '🏆 用此照片提交打卡'; }
+    }
+  }
+
+  // ===== 暴露给外部: 标记点点击触发 / 打卡流程触发 =====
   window.ArShoot = {
-    openForPoint: (pointId) => showArModal({ pointId })
+    openForPoint: (pointId) => showArModal({ pointId }),
+    showArModal  // 打卡流程直接调用: window.ArShoot.showArModal({ pointId, checkinCtx })
   };
 
   if (document.readyState === 'loading') {
