@@ -1,15 +1,11 @@
-// ===== P0 实用功能 (3-4-5) =====
-// P0-3 一键呼叫 / P0-4 紧急疏散 / P0-5 AI 客服
-// 依赖: window.CampData (data.js), window.BaiduMap (baidu-map.js)
+// ===== P0 实用功能 (3-5) =====
+// P0-3 一键呼叫 / P0-5 AI 客服 (P0-4 紧急疏散 v0.6.4 移除)
+// 依赖: window.CampData (data.js)
 (function () {
   'use strict';
 
   const HOTEL_PHONE = '021-59978686';  // 鹿营乡悦华亭度假村预约热线
-  const EVAC_GATHER = [
-    { id: 'eg1', name: '正门集合点', lat: 31.481502, lng: 121.28726, note: '主入口停车场旁' },
-    { id: 'eg2', name: '西门集合点', lat: 31.479885, lng: 121.289259, note: '西门停车场' },
-    { id: 'eg3', name: '中央草坪集合点', lat: 31.481916, lng: 121.287555, note: '中央草坪' }
-  ];
+  // 紧急疏散已移除 (v0.6.4)
 
   // ===== P0-3 一键呼叫 =====
   function setupCall() {
@@ -61,91 +57,6 @@
     });
     m.querySelector('#closeCallBtn').addEventListener('click', () => m.remove());
     m.addEventListener('click', (e) => { if (e.target === m) m.remove(); });
-  }
-
-  // ===== P0-4 紧急疏散 =====
-  let evacMode = false;
-  let evacOverlays = [];
-
-  function setupEvac() {
-    const btn = document.getElementById('toolEvacBtn');
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-      if (evacMode) {
-        clearEvac();
-        return;
-      }
-      showEvac();
-    });
-  }
-
-  function showEvac() {
-    evacMode = true;
-    const map = window.__campsiteMap;
-    if (!map) {
-      alert('地图尚未加载, 请稍候再试');
-      return;
-    }
-    // 切换按钮文案
-    const btn = document.getElementById('toolEvacBtn');
-    btn.innerHTML = '<span class="tool-icon">✕</span><span class="tool-label">关闭疏散</span>';
-
-    // 1. 画 3 个红色集合点
-    EVAC_GATHER.forEach(g => {
-      const html = `<div class="evac-marker">
-        <div class="evac-icon">🆘</div>
-        <div class="evac-label">${g.name}</div>
-      </div>`;
-      const overlay = BaiduMap.addDivMarker(map, g.lng, g.lat, html, { x: 16, y: 16 });
-      evacOverlays.push(overlay);
-    });
-
-    // 2. 显示疏散说明模态
-    showEvacModal();
-
-    // 3. fitBounds 让所有点都可见
-    const allPts = EVAC_GATHER.map(g => new BMap.Point(g.lng, g.lat));
-    try {
-      const viewport = map.getViewport(allPts);
-      map.setViewport(viewport, { margins: [80, 60, 200, 60] });
-    } catch (e) {}
-  }
-
-  function showEvacModal() {
-    const m = document.createElement('div');
-    m.className = 'modal-backdrop';
-    m.innerHTML = `
-      <div class="modal-card evac-card">
-        <h3 style="color:#C62828">🚨 紧急疏散</h3>
-        <p>如遇紧急情况 (火灾/医疗), 请:</p>
-        <ol class="evac-steps">
-          <li>保持冷静, 听从工作人员指挥</li>
-          <li>沿主路向 3 个红色集合点撤离</li>
-          <li>不要返回取物品, 优先保证人身安全</li>
-          <li>到达集合点后清点人数</li>
-        </ol>
-        <p class="evac-phone">紧急联系: <strong>${HOTEL_PHONE}</strong></p>
-        <div class="modal-actions">
-          <button class="btn-call-emerg" id="callEmergencyBtn">📞 立即呼叫</button>
-          <button class="btn-close" id="closeEvacBtn">我已了解</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(m);
-    m.querySelector('#callEmergencyBtn').addEventListener('click', () => {
-      window.location.href = 'tel:' + HOTEL_PHONE;
-    });
-    m.querySelector('#closeEvacBtn').addEventListener('click', () => m.remove());
-  }
-
-  function clearEvac() {
-    evacMode = false;
-    const btn = document.getElementById('toolEvacBtn');
-    btn.innerHTML = '<span class="tool-icon">🚨</span><span class="tool-label">紧急疏散</span>';
-    evacOverlays.forEach(o => {
-      try { o._div.remove(); } catch (e) {}
-    });
-    evacOverlays = [];
   }
 
   // ===== P0-5 AI 客服 (调 minimax API) =====
@@ -300,12 +211,7 @@
   // ===== 启动 =====
   function init() {
     setupCall();
-    setupEvac();
     setupAI();
-    // 暴露 map 给疏散用
-    document.addEventListener('campsite-map-ready', (e) => {
-      window.__campsiteMap = e.detail.map;
-    });
   }
 
   if (document.readyState === 'loading') {

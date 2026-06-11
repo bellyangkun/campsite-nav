@@ -156,8 +156,6 @@
             zoom: 15,
             enableScrollWheelZoom: true
           });
-          // 暴露给 extras.js (P0-4 疏散)
-          window.__campsiteMap = map;
           document.dispatchEvent(new CustomEvent('campsite-map-ready', { detail: { map } }));
           renderPoints();
           createUserMarker(first.lat, first.lng);
@@ -766,21 +764,12 @@
   function setHeading(heading, source) {
     currentHeading = heading;
     updateArrowUI(heading);
-    // 更新"我的状态"卡的朝向
-    const headingEl = $('#myStatusHeading');
-    if (headingEl) {
-      const ci = cardinalWithIcon(heading);
-      headingEl.textContent = `${ci.icon} ${ci.dir} ${Math.round(heading)}°`;
-    }
+    // v0.6.4: my-status-card 已移除, 不再写入 #myStatusHeading
   }
 
-  // 更新"我的状态"卡 (位置 + 精度)
+  // 更新位置 (v0.6.4: my-status-card 已移除, 仅触发事件给 AR/打卡用)
   function updateMyStatus(lat, lng, accuracy) {
-    const locEl = $('#myStatusLoc');
-    if (locEl) {
-      const acc = accuracy && accuracy < 1000 ? ` ±${Math.round(accuracy)}m` : '';
-      locEl.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}${acc}`;
-    }
+    // no-op: 数据通过 document.dispatchEvent('campsite-my-location', ...) 给 checkin.js / ar.js 用
   }
 
   // ===== 底部面板折叠/展开 =====

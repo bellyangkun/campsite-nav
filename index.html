@@ -18,7 +18,7 @@
     </div>
   </div>
 
-  <!-- 目标下拉 + 类型过滤 -->
+  <!-- 目标下拉 + 类型过滤 + 工具栏 (3 块各自一行, 紧凑) -->
   <div class="search-bar">
     <div class="dest-top">
       <label for="destSelect">📍 目标</label>
@@ -30,13 +30,24 @@
       <button class="chip active" data-type="all">全部</button>
       <button class="chip" data-type="entrance">🚪 入口</button>
       <button class="chip" data-type="activity">⛺ 活动</button>
-      <button class="chip" data-type="service">🛒 服务</button>
       <button class="chip" data-type="flash">⚡ 快闪</button>
-      <button class="chip" data-type="restaurant">🍽️ 饭店</button>
-      <button class="chip" data-type="toilet">🚻 卫生间</button>
-      <button class="chip" data-type="hotel">🏨 酒店</button>
+      <button class="chip" data-type="restaurant">🍽️ 餐厅</button>
       <button class="chip" data-type="teahouse">🍵 茶馆</button>
+      <button class="chip" data-type="hotel">🏨 酒店</button>
+      <button class="chip" data-type="service">🛒 服务</button>
+      <button class="chip" data-type="toilet">🚻 卫生间</button>
       <button class="chip" data-type="other">📍 其他</button>
+    </div>
+    <!-- 工具栏: 单独一行, 7 按钮紧凑横排, 水平滚动 -->
+    <div class="quick-toolbar" id="quickToolbar">
+      <button class="tool-btn tool-call" id="toolCallBtn" title="一键呼叫前台">
+        <span class="tool-icon">📞</span>
+        <span class="tool-label">呼叫</span>
+      </button>
+      <button class="tool-btn tool-ai" id="toolAiBtn" title="AI 客服咨询">
+        <span class="tool-icon">🤖</span>
+        <span class="tool-label">AI</span>
+      </button>
     </div>
   </div>
 
@@ -68,36 +79,8 @@
     <button id="toggleSheetBtn" class="sheet-handle" title="折叠/展开" aria-label="折叠/展开">
       <span class="sheet-handle-icon">▼</span>
     </button>
-    <!-- 我的状态卡 (常驻, 无需选目标也显示) -->
-    <div class="my-status-card">
-      <div class="my-status-row">
-        <div class="my-status-icon" id="myStatusIcon">📍</div>
-        <div class="my-status-info">
-          <div class="my-status-label">我的位置</div>
-          <div class="my-status-value" id="myStatusLoc">定位中...</div>
-        </div>
-        <div class="my-status-arrow">
-          <div class="my-status-label">朝向</div>
-          <div class="my-status-value" id="myStatusHeading">—</div>
-        </div>
-      </div>
-    </div>
 
-    <!-- 工具栏: 紧急呼叫 / 紧急疏散 / AI 客服 -->
-    <div class="quick-toolbar" id="quickToolbar">
-      <button class="tool-btn tool-call" id="toolCallBtn" title="一键呼叫前台">
-        <span class="tool-icon">📞</span>
-        <span class="tool-label">紧急呼叫</span>
-      </button>
-      <button class="tool-btn tool-evac" id="toolEvacBtn" title="紧急疏散路线">
-        <span class="tool-icon">🚨</span>
-        <span class="tool-label">紧急疏散</span>
-      </button>
-      <button class="tool-btn tool-ai" id="toolAiBtn" title="AI 客服咨询">
-        <span class="tool-icon">🤖</span>
-        <span class="tool-label">AI 客服</span>
-      </button>
-    </div>
+    <!-- (v0.6.4 工具栏已移入 search-bar) -->
 
     <div id="routeInfo" class="route-info hidden">
       <!-- 主信息: 距离 + 时间 -->

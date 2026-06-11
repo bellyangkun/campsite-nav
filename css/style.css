@@ -25,7 +25,7 @@ html, body {
   z-index: 10;
   background: rgba(255,255,255,0.92);
   backdrop-filter: saturate(180%) blur(10px);
-  padding: 10px 16px;
+  padding: 6px 14px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   display: flex;
   align-items: center;
@@ -33,12 +33,14 @@ html, body {
 }
 .top-bar h1 {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
+  line-height: 1.2;
 }
 .top-bar .sub {
-  font-size: 12px;
+  font-size: 11px;
   color: #666;
+  line-height: 1.2;
 }
 
 .bottom-sheet {
@@ -49,7 +51,7 @@ html, body {
   z-index: 10;
   background: rgba(255,255,255,0.95);
   backdrop-filter: saturate(180%) blur(10px);
-  padding: 14px 16px 22px;
+  padding: 8px 14px 16px;
   border-radius: 16px 16px 0 0;
   box-shadow: 0 -2px 16px rgba(0,0,0,0.1);
 }
@@ -71,10 +73,24 @@ html, body {
   -webkit-appearance: none;
 }
 .route-info {
-  margin-top: 12px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.route-info .route-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.route-info .route-direction {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+}
+.route-info .nav-btn-group {
+  display: flex;
+  gap: 5px;
 }
 .route-info.hidden { display: none; }
 .info-row {
@@ -89,17 +105,17 @@ html, body {
 .info-row .value { font-weight: 700; color: #111; }
 
 .fab {
-  position: absolute;
-  right: 16px;
-  bottom: 180px;
+  position: fixed;
+  right: 12px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));  /* v0.6.4: 底部右侧, 避开 mobile 底栏 */
   z-index: 10;
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: none;
   background: #fff;
   box-shadow: 0 3px 10px rgba(0,0,0,0.18);
-  font-size: 22px;
+  font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -108,19 +124,19 @@ html, body {
 .fab:active { transform: scale(0.96); }
 
 .compass {
-  position: absolute;
-  top: 66px;
-  right: 16px;
+  position: fixed;
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));  /* 紧贴 fab 上方 8px */
+  right: 12px;
   z-index: 10;
-  width: 56px;
-  height: 56px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 3px 10px rgba(0,0,0,0.18);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
+  font-size: 22px;
   transition: transform 0.15s linear;
 }
 .compass.hidden { display: none; }
@@ -765,9 +781,9 @@ tr:active { background: #f8f8f8; }
   flex-shrink: 0;
   background: rgba(255,255,255,0.95);
   border: 1.5px solid #eceff1;
-  border-radius: 16px;
-  padding: 6px 12px;
-  font-size: 12px;
+  border-radius: 14px;
+  padding: 3px 9px;
+  font-size: 11px;
   font-weight: 500;
   color: #555;
   cursor: pointer;
@@ -817,18 +833,18 @@ tr:active { background: #f8f8f8; }
 
 /* ===== 底部面板重做 ===== */
 .bottom-sheet {
-  padding: 16px 16px 20px;
+  padding: 8px 12px 12px;
 }
 
 /* 主信息: 距离 + 时间 */
 .route-main {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px 0;
+  gap: 12px;
+  padding: 8px 0;
   border-top: 1px solid #f0f0f0;
   border-bottom: 1px solid #f0f0f0;
-  margin: 12px 0;
+  margin: 6px 0;
 }
 
 .route-stat {
@@ -837,7 +853,7 @@ tr:active { background: #f8f8f8; }
 }
 
 .stat-num {
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 700;
   color: #2e7d32;
   line-height: 1.1;
@@ -845,34 +861,47 @@ tr:active { background: #f8f8f8; }
 }
 
 .stat-unit {
-  font-size: 11px;
+  font-size: 10px;
   color: #888;
-  margin-top: 4px;
+  margin-top: 2px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .route-divider {
   width: 1px;
-  height: 40px;
+  height: 28px;
   background: #eceff1;
 }
 
 /* 方向卡片 */
 .route-direction {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: row;
+  gap: 4px;
+}
+
+.dir-card {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border-left: 2px solid #cbd5e1;
+  transition: all 0.2s;
 }
 
 .dir-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 6px 10px;
   background: #f8fafc;
-  border-radius: 8px;
-  border-left: 3px solid #cbd5e1;
+  border-radius: 6px;
+  border-left: 2px solid #cbd5e1;
   transition: all 0.2s;
 }
 
@@ -883,12 +912,12 @@ tr:active { background: #f8f8f8; }
 
 .dir-card.dir-target .dir-icon {
   color: #2e7d32;
-  font-size: 28px;
+  font-size: 16px;
 }
 
 .dir-icon {
-  font-size: 22px;
-  width: 36px;
+  font-size: 15px;
+  width: 18px;
   text-align: center;
   color: #64748b;
   flex-shrink: 0;
@@ -900,28 +929,30 @@ tr:active { background: #f8f8f8; }
 }
 
 .dir-label {
-  font-size: 11px;
+  font-size: 10px;
   color: #888;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
+  line-height: 1.1;
 }
 
 .dir-value {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   color: #1e293b;
+  line-height: 1.2;
 }
 
 /* ===== 百度地图步行导航按钮 ===== */
 .nav-btn {
   display: block;
   width: 100%;
-  margin: 12px 0;
-  padding: 12px 16px;
+  margin: 6px 0;
+  padding: 8px 12px;
   background: linear-gradient(135deg, #ff7043, #e64a19);
   color: #fff;
   border: none;
-  border-radius: 8px;
-  font-size: 15px;
+  border-radius: 6px;
+  font-size: 13px;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
@@ -968,14 +999,14 @@ tr:active { background: #f8f8f8; }
 
 /* ===== 微信内步行按钮下方提示 ===== */
 .nav-weixin-hint {
-  margin: -8px 0 12px;
-  padding: 8px 12px;
+  margin: 0;
+  padding: 3px 8px;
   background: #fff3e0;
   border: 1px solid #ffcc80;
   border-radius: 6px;
   color: #e65100;
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: 11px;
+  line-height: 1.3;
   text-align: center;
 }
 
@@ -983,59 +1014,7 @@ tr:active { background: #f8f8f8; }
 
 .nav-weixin-hint strong { color: #bf360c; font-weight: 700; }
 
-/* ===== 我的状态卡 (常驻) ===== */
-.my-status-card {
-  background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
-  border: 1px solid #a5d6a7;
-  border-radius: 10px;
-  padding: 10px 14px;
-  margin-bottom: 12px;
-}
-
-.my-status-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.my-status-icon {
-  font-size: 24px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.my-status-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.my-status-label {
-  font-size: 11px;
-  color: #1b5e20;
-  font-weight: 500;
-  margin-bottom: 2px;
-}
-
-.my-status-value {
-  font-size: 14px;
-  color: #1b5e20;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.my-status-arrow {
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.my-status-arrow .my-status-label {
-  color: #e65100;
-}
-
-.my-status-arrow .my-status-value {
-  color: #bf360c;
-  font-size: 16px;
-}
+/* (v0.6.4 移除 my-status-card 整组样式) */
 
 /* ===== 增强版用户位置 marker ===== */
 .user-marker-icon {
@@ -1065,8 +1044,8 @@ tr:active { background: #f8f8f8; }
 /* ===== 导航按钮组 ===== */
 .nav-btn-group {
   display: flex;
-  gap: 8px;
-  margin: 12px 0;
+  gap: 5px;
+  margin: 6px 0;
 }
 
 .nav-btn-group .nav-btn {
@@ -1165,9 +1144,9 @@ body {
   background: rgba(255, 255, 255, 0.75) !important;
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
-  padding: 10px 12px !important;
-  border-radius: 16px !important;
-  margin: 8px 12px 0 !important;
+  padding: 6px 10px !important;
+  border-radius: 14px !important;
+  margin: 6px 10px 0 !important;
   box-shadow: 0 2px 12px rgba(0,0,0,0.06) !important;
 }
 
@@ -1202,6 +1181,9 @@ body {
   border-top: 1px solid rgba(46, 125, 50, 0.15) !important;
   box-shadow: 0 -4px 24px rgba(0,0,0,0.08) !important;
   border-radius: 20px 20px 0 0 !important;
+  /* v0.6.4: 留出 mobile 底栏 (home indicator) + 系统悬浮工具栏空间, 避免遮挡 */
+  bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 .sheet-handle-icon {
@@ -1230,7 +1212,9 @@ body {
 .dir-card {
   background: #fff !important;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
-  border-radius: 10px !important;
+  border-radius: 6px !important;
+  padding: 5px 10px !important;
+  gap: 8px !important;
   transition: all 0.2s;
 }
 
@@ -1240,12 +1224,28 @@ body {
 
 .dir-card.dir-target {
   background: linear-gradient(135deg, #fff3e0, #ffe0b2) !important;
-  border-left: 3px solid #ff7043 !important;
+  border-left: 2px solid #ff7043 !important;
   box-shadow: 0 2px 8px rgba(255, 112, 67, 0.15) !important;
 }
 
 .dir-card.dir-target .dir-icon {
   color: #e64a19 !important;
+  font-size: 18px !important;
+}
+
+.dir-card .dir-icon {
+  font-size: 16px !important;
+  width: 22px !important;
+}
+
+.dir-card .dir-label {
+  font-size: 10px !important;
+  margin-bottom: 0 !important;
+}
+
+.dir-card .dir-value {
+  font-size: 12px !important;
+  line-height: 1.2 !important;
 }
 
 .dir-card.dir-target .dir-value {
@@ -1376,30 +1376,47 @@ body {
   to { transform: translateY(0); }
 }
 
-/* ===== P0 工具栏 (P0-3 呼叫 / P0-4 疏散 / P0-5 AI) ===== */
+/* ===== P0 工具栏 (P0-3 呼叫 / P0-5 AI, P0-4 疏散已移除) ===== */
 .quick-toolbar {
   display: flex;
-  gap: 6px;
-  padding: 8px 8px 4px;
-  border-top: 1px dashed rgba(0, 0, 0, 0.08);
+  gap: 4px;
+  padding: 4px 0 0;
+  margin-top: 4px;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;  /* 隐藏滚动条 */
+  scrollbar-width: none;
+  border-top: 1px dashed rgba(0, 0, 0, 0.06);
+}
+.quick-toolbar::-webkit-scrollbar { display: none; }
+/* v0.6.4: search-bar 内工具按钮紧凑版 - 比基础 .tool-btn 更小 */
+.quick-toolbar .tool-btn {
+  min-width: 42px;
+  padding: 3px 5px;
+  gap: 0;
+  font-size: 10px;
+  border-radius: 6px;
+}
+.quick-toolbar .tool-btn .tool-icon {
+  font-size: 15px;
+}
+.quick-toolbar .tool-btn .tool-label {
+  font-size: 9px;
+  line-height: 1.1;
 }
 .quick-toolbar::-webkit-scrollbar { display: none; }
 .tool-btn {
   flex: 0 0 auto;
-  min-width: 60px;
+  min-width: 52px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  padding: 8px 10px;
+  gap: 1px;
+  padding: 5px 8px;
   border: 0;
-  border-radius: 10px;
-  font-size: 13px;
+  border-radius: 8px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: transform 0.12s, box-shadow 0.12s;
@@ -1410,32 +1427,23 @@ body {
   transform: scale(0.95);
 }
 .tool-btn .tool-icon {
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1;
 }
 .tool-btn .tool-label {
-  font-size: 11px;
+  font-size: 10px;
   white-space: nowrap;
+  line-height: 1.1;
 }
 .tool-btn.tool-call {
   background: linear-gradient(135deg, #4CAF50, #2E7D32);
   color: #fff;
   box-shadow: 0 2px 6px rgba(76, 175, 80, 0.35);
 }
-.tool-btn.tool-evac {
-  background: linear-gradient(135deg, #F44336, #C62828);
-  color: #fff;
-  box-shadow: 0 2px 6px rgba(244, 67, 54, 0.35);
-  animation: evacPulse 1.6s ease-in-out infinite;
-}
 .tool-btn.tool-ai {
   background: linear-gradient(135deg, #2196F3, #1565C0);
   color: #fff;
   box-shadow: 0 2px 6px rgba(33, 150, 243, 0.35);
-}
-@keyframes evacPulse {
-  0%, 100% { box-shadow: 0 2px 6px rgba(244, 67, 54, 0.35); }
-  50% { box-shadow: 0 2px 14px rgba(244, 67, 54, 0.7); }
 }
 /* 宠物徽章 */
 .pet-badge {
@@ -1510,53 +1518,6 @@ body {
 .btn-close {
   background: #eee;
   color: #333;
-}
-
-/* 疏散步骤 */
-.evac-steps {
-  text-align: left;
-  font-size: 14px;
-  color: #555;
-  padding-left: 22px;
-  margin: 10px 0;
-}
-.evac-steps li { margin: 4px 0; }
-.evac-phone {
-  background: #FFEBEE;
-  border-left: 3px solid #C62828;
-  padding: 8px 12px;
-  font-size: 14px;
-  margin: 12px 0;
-  color: #C62828;
-}
-.evac-card { border-top: 4px solid #C62828; }
-
-/* 疏散 marker */
-.evac-marker {
-  position: relative;
-}
-.evac-icon {
-  background: #F44336;
-  color: #fff;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  box-shadow: 0 0 0 4px rgba(244, 67, 54, 0.25), 0 4px 10px rgba(0, 0, 0, 0.3);
-  animation: evacPulse 1.2s ease-in-out infinite;
-}
-.evac-label {
-  margin-top: 4px;
-  background: #F44336;
-  color: #fff;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
 }
 
 /* AI 客服 */
