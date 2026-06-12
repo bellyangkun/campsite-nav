@@ -755,6 +755,24 @@ tr:active { background: #f8f8f8; }
 
 .dest-top-select:focus { outline: none; }
 
+/* v0.7.4: 目标右边"结束导航"按钮 (导航中显示) */
+.end-nav-inline-btn {
+  flex-shrink: 0;
+  border: 1px solid #e0e0e0;
+  background: #fff5f5;
+  color: #c62828;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.end-nav-inline-btn:hover { background: #ffe0e0; }
+.end-nav-inline-btn:active { background: #ffcccc; }
+.end-nav-inline-btn.hidden { display: none !important; }
+
 .search-bar {
   position: absolute;
   top: 60px;

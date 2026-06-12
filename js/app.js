@@ -121,6 +121,22 @@
         });
       }
 
+      // v0.7.4: 结束导航按钮 (绑定 index.html 里 #endNavBtn, 跟步行/驾车按钮同位置)
+      const endNavBtn = $('#endNavBtn');
+      if (endNavBtn) {
+        endNavBtn.addEventListener('click', () => {
+          // 重置下拉 + 清 selectedDestId + 恢复全部 marker + 清路线
+          const sel = $('#destSelect');
+          if (sel) sel.value = '';
+          selectedDestId = null;
+          if (typeof applyFilters === 'function') applyFilters();
+          if (typeof drawRoute === 'function') drawRoute();
+          if (window.CampApp && typeof window.CampApp.toast === 'function') {
+            window.CampApp.toast('已结束导航');
+          }
+        });
+      }
+
       // 微信内: 步行按钮下方显示提示
       if (/MicroMessenger/i.test(navigator.userAgent)) {
         const hint = $('#navWeixinHint');
@@ -135,6 +151,10 @@
       const dismissBtn = $('#locateDismissBtn');
       if (retryBtn) retryBtn.addEventListener('click', () => { hideLocateError(); startGeolocation(); });
       if (dismissBtn) dismissBtn.addEventListener('click', hideLocateError);
+
+      // v0.7.4: 结束导航按钮默认隐藏 (drawRoute 时才按需显示)
+      const endBtn = $('#endNavBtn');
+      if (endBtn) endBtn.classList.add('hidden');
 
       populateSelect();
 
@@ -236,6 +256,10 @@
       if (activeTypeFilter !== 'all' && p.type !== activeTypeFilter) return false;
       return true;
     });
+    // v0.7.4: 导航中(已选 selectedDestId)只显示当前目标, 其他隐藏
+    if (selectedDestId) {
+      visiblePoints = visiblePoints.filter(p => p.id === selectedDestId);
+    }
     // 更新地图标记显隐
     if (map) {
       Object.keys(mapOverlays).forEach(id => {
@@ -260,34 +284,9 @@
       </div>`;
       const overlay = BaiduMap.addDivMarker(map, p.lng, p.lat, html, { x: 16, y: 16 });
       mapOverlays[p.id] = overlay;
-      // 点击标记: 选为当前目标 (同步下拉框 + 触发路由 + 滚动到底部面板)
-      // 移动端 bug: 百度地图 div 标记 click 事件会被地图拖动吞掉
-      // 修复: 同时绑 click + touchend, 移动端优先 touchend, 加 300ms 锁防双触发
+      // v0.7.3: 点击 marker 不再触发 select / 路由 (避免误选目标, marker 只展示)
+      // 保留 div 引用以便后续扩展 (信息气泡等)
       const div = overlay._div;
-      let lastTouchTime = 0;
-      const handleSelect = (e) => {
-        if (e) {
-          e.stopPropagation();
-          e.preventDefault && e.preventDefault();
-        }
-        const sel = $('#destSelect');
-        if (sel) {
-          sel.value = p.id;
-          onDestChange();
-        }
-        // 平滑滚动到底部面板 (移动端体验)
-        const sheet = document.querySelector('.bottom-sheet');
-        if (sheet && window.innerWidth <= 600) {
-          sheet.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        }
-      };
-      div.addEventListener('click', handleSelect);
-      div.addEventListener('touchend', (e) => {
-        const now = Date.now();
-        if (now - lastTouchTime < 400) return;  // 防 click 重复触发
-        lastTouchTime = now;
-        handleSelect(e);
-      });
     });
   }
 
@@ -314,6 +313,8 @@
     // 同步 AR 拍照按钮的 pointId
     const arBtn = document.getElementById('arShootBtn');
     if (arBtn) arBtn.dataset.pointId = selectedDestId || '';
+    // v0.7.4: 导航时只显示当前目标 (其他 POI 隐藏)
+    if (typeof applyFilters === 'function') applyFilters();
     drawRoute();
   }
 
@@ -326,8 +327,10 @@
     if (destMarker) { map.removeOverlay(destMarker); destMarker = null; }
 
     const dest = getSelectedPoint();
+    const endBtn = $('#endNavBtn');
     if (!dest) {
       $('#routeInfo').classList.add('hidden');
+      if (endBtn) endBtn.classList.add('hidden');
       return;
     }
 
@@ -366,6 +369,7 @@
     }
 
     $('#routeInfo').classList.remove('hidden');
+    if (endBtn) endBtn.classList.remove('hidden');
     updateRouteInfo();
   }
 

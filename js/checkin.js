@@ -29,6 +29,14 @@
 
   // dwell 状态: pointId -> { enteredAt, submittedAt }
   const dwellState = new Map();
+  // 缓存最近一次位置 (从 campsite-my-location 事件拿)
+  let lastUserLat = null, lastUserLng = null;
+  document.addEventListener('campsite-my-location', (e) => {
+    if (e.detail && typeof e.detail.lat === 'number' && typeof e.detail.lng === 'number') {
+      lastUserLat = e.detail.lat;
+      lastUserLng = e.detail.lng;
+    }
+  });
   // 24h 内已提交过的 POI (含成功, 含距离 409)
   function getSubmittedSet() {
     try {
@@ -53,7 +61,7 @@
     localStorage.setItem(SUBMITTED_KEY, JSON.stringify(obj));
   }
 
-  // ===== 工具栏按钮 =====
+  // ===== 工具栏按钮: 打卡集章 (查看进度) =====
   function setupCheckinBtn() {
     const tb = document.getElementById('quickToolbar');
     if (!tb) return;
@@ -62,11 +70,91 @@
     btn.className = 'tool-btn tool-checkin';
     btn.id = 'toolCheckinBtn';
     btn.title = '打卡集章';
-    btn.innerHTML = '<span class="tool-icon">🏆</span><span class="tool-label">打卡集章</span>';
+    btn.innerHTML = '<span class="tool-icon">🏆</span><span class="tool-label">打卡</span>';
     btn.addEventListener('click', showCheckinPanel);
     const aiBtn = document.getElementById('toolAiBtn');
     if (aiBtn && aiBtn.nextSibling) tb.insertBefore(btn, aiBtn.nextSibling);
     else tb.appendChild(btn);
+  }
+
+  // ===== 工具栏按钮: 主动拍照打卡 =====
+  function setupSelfieBtn() {
+    const tb = document.getElementById('quickToolbar');
+    if (!tb) return;
+    if (document.getElementById('toolSelfieBtn')) return;
+    const btn = document.createElement('button');
+    btn.className = 'tool-btn tool-selfie';
+    btn.id = 'toolSelfieBtn';
+    btn.title = '主动拍照打卡';
+    btn.innerHTML = '<span class="tool-icon">📷</span><span class="tool-label">拍照</span>';
+    btn.addEventListener('click', showSelfieCheckinPrompt);
+    tb.appendChild(btn);
+  }
+
+  // 弹拍照模态, 拍完判断最近POI距离 → 范围内正常打卡, 范围外 other
+  async function showSelfieCheckinPrompt() {
+    if (document.getElementById('selfieCheckinModal')) return;
+    // 优先用缓存的 lastUserLat/Lng (监听 campsite-my-location 事件), 其次 window.CampApp
+    let userLat = lastUserLat, userLng = lastUserLng;
+    if (userLat == null || userLng == null) {
+      if (window.CampApp && window.CampApp.userLatLng) {
+        userLat = window.CampApp.userLatLng[0];
+        userLng = window.CampApp.userLatLng[1];
+      }
+    }
+    if (userLat == null || userLng == null) {
+      showToast('需要先开启定位, 才能拍照打卡');
+      return;
+    }
+    // 先选最近的 POI (在 200m 内才算正常, 否则 other)
+    let nearPoint = null;
+    try {
+      const points = (window.CampData && window.CampData.getPointsSync) ? window.CampData.getPointsSync() : [];
+      for (const p of points) {
+        const d = haversine(userLat, userLng, p.lat, p.lng);
+        if (d <= 200 && (!nearPoint || d < nearPoint._d)) {
+          nearPoint = { ...p, _d: d };
+        }
+      }
+    } catch (e) { console.warn('[Selfie] 读 POI 失败', e); }
+
+    const m = document.createElement('div');
+    m.id = 'selfieCheckinModal';
+    m.className = 'modal-backdrop';
+    const target = nearPoint
+      ? `<p style="margin:6px 0;font-size:14px;color:#1b5e20">检测到您在 <b>${CampData.escapeHtml(nearPoint.name)}</b> 范围内 (~${Math.round(nearPoint._d)}m), 拍照将记入打卡印章</p>`
+      : `<p style="margin:6px 0;font-size:14px;color:#888">当前不在任何打卡点范围内, 拍照将记录为"主动拍照" (不计奖励)</p>`;
+    m.innerHTML = `
+      <div class="modal-card pc-card" style="width:340px;padding:0;display:flex;flex-direction:column">
+        <div class="ai-header" style="background:linear-gradient(135deg,#FF6F00,#FF8F00)">
+          <span>📷 主动拍照打卡</span>
+          <button class="ai-close" id="scCloseBtn">✕</button>
+        </div>
+        <div class="pc-body" style="padding:18px;text-align:center">
+          <div style="font-size:42px;margin-bottom:6px">📷</div>
+          ${target}
+          <button id="scOpenCamera" class="btn" style="width:100%;font-size:15px;padding:12px;background:linear-gradient(135deg,#FF6F00,#FF8F00);color:#fff;border:none;border-radius:8px;cursor:pointer;margin-top:8px">📷 拍照 + 选贴图</button>
+          <button id="scSkip" class="btn" style="width:100%;margin-top:8px;background:none;border:1px solid #ddd;color:#888;border-radius:8px;padding:10px;cursor:pointer;font-size:13px">取消</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(m);
+    m.querySelector('#scCloseBtn').addEventListener('click', () => m.remove());
+    m.querySelector('#scSkip').addEventListener('click', () => m.remove());
+    m.addEventListener('click', (e) => { if (e.target === m) m.remove(); });
+    m.querySelector('#scOpenCamera').addEventListener('click', () => {
+      m.remove();
+      if (window.ArShoot && typeof window.ArShoot.showArModal === 'function') {
+        window.ArShoot.showArModal({
+          pointId: nearPoint ? nearPoint.id : null,
+          checkinCtx: nearPoint
+            ? { point: nearPoint, userLat, userLng, dwellMs: 0 }
+            : { point: { id: null, name: '主动拍照打卡' }, userLat, userLng, dwellMs: 0, isOther: true }
+        });
+      } else {
+        alert('拍照模块未加载');
+      }
+    });
   }
 
   // ===== 弹窗: 打卡面板 =====
@@ -108,7 +196,8 @@
       const t = new Date(c.timestamp).toLocaleString('zh-CN', { hour12: false });
       const autoTag = c.auto ? ' <span class="bk-st bk-ok" style="font-size:9px">自动</span>' : ' <span class="bk-st bk-pending" style="font-size:9px">手动</span>';
       const shotTag = c.shotUrl ? ' <span class="bk-st" style="font-size:9px;background:#FFE0B2;color:#E65100">📸</span>' : '';
-      const shotThumb = c.shotUrl ? `<img src="${API}${c.shotUrl}" style="width:36px;height:36px;border-radius:4px;object-fit:cover;vertical-align:middle;margin-left:6px" />` : '';
+      const shotFullUrl = c.shotUrl ? (c.shotUrl.startsWith('/ar_shots/') ? c.shotUrl : API + c.shotUrl) : '';
+      const shotThumb = shotFullUrl ? `<img src="${shotFullUrl}" class="ck-shot-thumb" data-full="${shotFullUrl}" data-caption="${CampData.escapeHtml(c.pointName || '主动拍照')} · ${t}" style="width:36px;height:36px;border-radius:4px;object-fit:cover;vertical-align:middle;margin-left:6px;cursor:pointer" />` : '';
       return `<div class="ck-log-item">🏆 ${CampData.escapeHtml(c.pointName)}${autoTag}${shotTag} <span class="muted">${t}</span>${shotThumb}</div>`;
     }).join('') : '<div class="empty-tip">还没打卡, 出发吧!</div>';
 
@@ -140,6 +229,39 @@
     document.body.appendChild(m);
     m.querySelector('#ckCloseBtn').addEventListener('click', () => m.remove());
     m.addEventListener('click', (e) => { if (e.target === m) m.remove(); });
+    // v0.7.4: 打卡缩略图点击 → 弹全屏大图灯箱
+    m.querySelectorAll('img.ck-shot-thumb').forEach(img => {
+      img.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openShotLightbox(img.dataset.full, img.dataset.caption);
+      });
+    });
+  }
+
+  // ===== 灯箱: 看大图 =====
+  function openShotLightbox(src, caption) {
+    if (!src) return;
+    if (document.getElementById('ckShotLightbox')) return;
+    const lb = document.createElement('div');
+    lb.id = 'ckShotLightbox';
+    lb.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.92);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+    lb.innerHTML = `
+      <button id="ckShotLbClose" style="position:absolute;top:12px;right:16px;width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,0.2);color:#fff;font-size:20px;cursor:pointer">✕</button>
+      <img src="${src}" style="max-width:96vw;max-height:80vh;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,0.5);object-fit:contain;background:#000" />
+      <div style="color:#fff;font-size:14px;margin-top:12px;text-align:center;opacity:0.85">${CampData.escapeHtml(caption || '')}</div>
+    `;
+    document.body.appendChild(lb);
+    const close = () => lb.remove();
+    lb.querySelector('#ckShotLbClose').addEventListener('click', close);
+    lb.addEventListener('click', (e) => { if (e.target === lb || e.target.tagName === 'IMG' || e.target === lb.lastElementChild) close(); });
+    // ESC 关闭
+    const escHandler = (e) => {
+      if (e.key === 'Escape') {
+        close();
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
   }
 
   // ===== 轻提示: 自动打卡成功 (不挡路) =====
@@ -275,7 +397,7 @@
 
   // 拍照后由 ar.js 回调 (window.campAppSubmitCheckin = submitCheckin)
   async function submitCheckin(ctx) {
-    const { point, shotUrl, shotFrameId, userLat: ulat, userLng: ulng, dwellMs } = ctx;
+    const { point, shotUrl, shotFrameId, userLat: ulat, userLng: ulng, dwellMs, isOther } = ctx;
     const userId = getUserId();
     try {
       const res = await fetch(API + '/checkins', {
@@ -283,7 +405,8 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId,
-          pointId: point.id,
+          // v0.7.x 主动拍照打卡: isOther 时不传 pointId, 后端走 other 路径不计奖励
+          pointId: isOther ? null : (point && point.id) || null,
           userLat: ulat,
           userLng: ulng,
           dwellTime: Math.round((dwellMs || DWELL_REQUIRED * 1000) / 1000),
@@ -294,16 +417,16 @@
       });
       const j = await res.json();
       if (j.code === 0) {
-        markSubmitted(point.id);
-        showLightToast(point, j.userTotal);
-        document.dispatchEvent(new CustomEvent('campsite-checkin-success', { detail: { point, userTotal: j.userTotal, shotUrl } }));
+        if (!isOther && point) markSubmitted(point.id);
+        showLightToast(isOther ? { name: '主动拍照打卡' } : point, isOther ? null : j.userTotal);
+        document.dispatchEvent(new CustomEvent('campsite-checkin-success', { detail: { point, userTotal: j.userTotal, shotUrl, isOther } }));
         return j;
       } else if (j.code === 409) {
-        markSubmitted(point.id);
-        showLightToast(point, null);  // 已打过, 不增 total
+        if (!isOther && point) markSubmitted(point.id);
+        showLightToast(isOther ? { name: '主动拍照打卡' } : point, null);
         return j;
       } else {
-        showLightToast(point, null);
+        showLightToast(isOther ? { name: '主动拍照打卡' } : point, null);
         console.warn('[Checkin] submit fail', j);
         return j;
       }
@@ -328,9 +451,22 @@
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
+  function showToast(msg, type) {
+    if (window.CampApp && typeof window.CampApp.toast === 'function') {
+      window.CampApp.toast(msg, type);
+      return;
+    }
+    if (window.ArShoot && typeof window.ArShoot.showToast === 'function') {
+      window.ArShoot.showToast(msg, type);
+      return;
+    }
+    alert(msg);
+  }
+
   // ===== 启动 =====
   function init() {
     setupCheckinBtn();
+    setupSelfieBtn();
     setupAutoCheckin();
   }
 

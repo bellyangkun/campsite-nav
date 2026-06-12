@@ -28,18 +28,10 @@
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  // ===== 工具栏按钮 =====
+  // ===== 工具栏按钮 (v0.7.3: AR 合影按钮隐藏, 改由 checkin.js 的"主动拍照"按钮调用 showArModal) =====
   function setupArBtn() {
-    const tb = document.getElementById('quickToolbar');
-    if (!tb) return;
-    if (document.getElementById('toolArBtn')) return;
-    const btn = document.createElement('button');
-    btn.className = 'tool-btn tool-ar';
-    btn.id = 'toolArBtn';
-    btn.title = 'AR 合影 (按位置自动选 logo)';
-    btn.innerHTML = '<span class="tool-icon">📸</span><span class="tool-label">AR 合影</span>';
-    btn.addEventListener('click', () => showArModal());
-    tb.appendChild(btn);
+    // v0.7.3: 工具栏不再显示 AR 合影按钮 (主动拍照按钮统一入口)
+    return;
   }
 
   // ===== 模态 =====
@@ -60,7 +52,7 @@
     m.innerHTML = `
       <div class="modal-card ar-card">
         <div class="ai-header">
-          <span>📸 AR 合影</span>
+          <span>📷 拍照</span>
           <button class="ai-close" id="arCloseBtn">✕</button>
         </div>
         <div class="ar-body" id="arBody">
@@ -81,18 +73,19 @@
       currentFrames = (framesRes.code === 0 ? framesRes.data.frames : []) || [];
       currentSettings = (settingsRes.code === 0 ? settingsRes.data : {}) || {};
     } catch (e) {
-      document.getElementById('arBody').innerHTML =
-        '<div style="text-align:center;padding:30px;color:#c62828">加载失败: ' + escapeHtml(e.message) + '</div>';
-      return;
+      // v0.7.x 自拍打卡: 即使拉 frames 失败也允许拍照 (用全局默认或无 logo 隐形合成)
+      console.warn('[AR] load frames/settings failed', e);
+      currentFrames = [];
+      currentSettings = {};
     }
 
     // 拉 POI 列表 (用 data.js 的 getPointsSync)
     let points = [];
     try { points = (window.CampData && window.CampData.getPointsSync()) || []; } catch (e) {}
     if (!points.length) {
-      document.getElementById('arBody').innerHTML =
-        '<div style="text-align:center;padding:30px;color:#c62828">未加载到 POI 数据, 请刷新页面</div>';
-      return;
+      // v0.7.x 自拍打卡: POI 列表空也允许拍照 (用全局默认或无 logo 隐形合成)
+      console.warn('[AR] no points loaded, but allow self-selfie checkin');
+      points = [];
     }
 
     // 用户位置 (从 app.js 全局状态拿)
@@ -116,6 +109,13 @@
       withDist.sort((a, b) => (a._dist || 1e9) - (b._dist || 1e9));
     }
 
+    // v0.7.x 自拍打卡: 即使没 pointId 也要直接进拍照, 不要弹 POI 选择
+    if (opts.checkinCtx) {
+      // 自拍: chosenPoint 设为 null (后端 other 路径), 不传 pointId
+      chosenPoint = opts.pointId ? (points.find(p => p.id === opts.pointId) || null) : null;
+      showCameraStage();
+      return;
+    }
     // 如果从 marker 点了传过来 pointId, 锁定
     if (opts.pointId) {
       chosenPoint = points.find(p => p.id === opts.pointId) || null;
@@ -178,8 +178,8 @@
 
   function showCameraStage() {
     if (!chosenPoint) {
-      showToast('请先选一个位置', 'error');
-      return;
+      // v0.7.x: 没选 POI 也允许拍照 (用全局默认 logo 或无 logo 隐形合成)
+      chosenPoint = null;
     }
     const body = document.getElementById('arBody');
     // 决定用哪个 frame (preview 展示)
@@ -191,11 +191,10 @@
       <div class="ar-stage">
         <div class="ar-choosen-point">
           <span style="color:#666;font-size:12px">📍</span>
-          <span style="font-weight:600">${escapeHtml(chosenPoint.name)}</span>
-          <button class="ar-change-point-btn" id="arChangePointBtn">换位置</button>
+          <span style="font-weight:600">${escapeHtml((chosenPoint && chosenPoint.name) || '主动拍照')}</span>
+          <button class="ar-change-point-btn" id="arChangePointBtn">${chosenPoint ? '换位置' : '选位置'}</button>
         </div>
         ${logoInfo}
-        <button class="ar-change-logo-btn" id="arChangeLogoBtn">🎨 换 logo (${currentFrames.length} 个可选)</button>
         <div class="ar-inputs">
           <label class="ar-input-btn">
             📷 拍一张
@@ -230,7 +229,6 @@
       if (currentUserLatLng) withDist.sort((a, b) => (a._dist || 1e9) - (b._dist || 1e9));
       renderPointChooser(withDist);
     });
-    body.querySelector('#arChangeLogoBtn').addEventListener('click', showLogoPicker);
     body.querySelector('#arCameraInput').addEventListener('change', onPhotoChosen);
     body.querySelector('#arFileInput').addEventListener('change', onPhotoChosen);
     body.querySelector('#arRetryBtn').addEventListener('click', () => {
@@ -248,12 +246,13 @@
       showToast('暂无可用 logo, 请联系管理员上传', 'error');
       return;
     }
+    const pointName = (chosenPoint && chosenPoint.name) || '主动拍照';
     body.innerHTML = `
       <div class="ar-stage">
         <div class="ar-choosen-point">
           <span style="color:#666;font-size:12px">📍</span>
-          <span style="font-weight:600">${escapeHtml(chosenPoint.name)}</span>
-          <button class="ar-change-point-btn" id="arChangePointBtn">换位置</button>
+          <span style="font-weight:600">${escapeHtml(pointName)}</span>
+          <button class="ar-change-point-btn" id="arChangePointBtn">${chosenPoint ? '换位置' : '选位置'}</button>
         </div>
         <div class="ar-instructions" style="background:#E3F2FD;color:#1565C0">
           选一个 logo (点 "用全局默认" 恢复自动)
@@ -451,15 +450,18 @@
       return;
     }
     const btn = document.getElementById('arCheckinBtn');
+    const isOther = !!currentCheckinCtx.isOther;
     if (btn) { btn.disabled = true; btn.textContent = '⏳ 提交中...'; }
     try {
       const ctx = Object.assign({}, currentCheckinCtx, {
         shotUrl: lastShotResult.url,
-        shotFrameId: lastShotResult.frameId
+        shotFrameId: lastShotResult.frameId,
+        // v0.7.x 主动拍照: 不传 pointId → 后端 other 路径, 不计奖励
+        pointId: isOther ? null : (currentCheckinCtx.point && currentCheckinCtx.point.id) || null
       });
       const j = await window.campAppSubmitCheckin(ctx);
       if (j && j.code === 0) {
-        showToast('🏆 打卡成功 +1 印章', 'success');
+        showToast(isOther ? '📷 主动拍照打卡成功 (不计奖励)' : '🏆 打卡成功 +1 印章', 'success');
         // 1.5s 后关拍照模态
         setTimeout(() => {
           const m = document.getElementById('arModal');
@@ -475,11 +477,11 @@
         }, 1200);
       } else {
         showToast('提交失败: ' + (j && j.message || '未知'), 'error');
-        if (btn) { btn.disabled = false; btn.textContent = '🏆 用此照片提交打卡'; }
+        if (btn) { btn.disabled = false; btn.textContent = isOther ? '📷 主动拍照打卡 (不计奖励)' : '🏆 用此照片提交打卡'; }
       }
     } catch (e) {
       showToast('网络错误: ' + e.message, 'error');
-      if (btn) { btn.disabled = false; btn.textContent = '🏆 用此照片提交打卡'; }
+      if (btn) { btn.disabled = false; btn.textContent = isOther ? '📷 主动拍照打卡 (不计奖励)' : '🏆 用此照片提交打卡'; }
     }
   }
 

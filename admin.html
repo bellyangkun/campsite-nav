@@ -151,6 +151,44 @@
       </div>
     </div>
 
+    <div class="card" data-section="checkin">
+      <h2>🏆 打卡记录</h2>
+      <p class="hint">用户上传的拍照打卡照片, 点缩略图可看大图。</p>
+      <div class="form-row" style="gap:8px;flex-wrap:wrap">
+        <button type="button" id="refreshCheckinBtn" class="btn">🔄 刷新</button>
+        <select id="checkinUserFilter" class="btn" style="min-width:160px"></select>
+        <select id="checkinTypeFilter" class="btn" style="min-width:140px">
+          <option value="all">全部类型</option>
+          <option value="normal">到点打卡</option>
+          <option value="other">主动拍照</option>
+          <option value="with-photo">有照片</option>
+          <option value="no-photo">无照片</option>
+        </select>
+        <input type="text" id="checkinSearch" placeholder="🔍 搜 POI 名/用户/手机号" style="flex:1;min-width:180px;padding:6px 10px;border:1px solid #ccc;border-radius:6px" />
+      </div>
+      <div class="form-row" style="gap:16px;font-size:13px;color:#555;background:#f5f5f5;padding:8px 12px;border-radius:6px">
+        <span>总打卡: <strong id="checkinStatTotal" style="color:#1565c0">0</strong></span>
+        <span>有照片: <strong id="checkinStatPhoto" style="color:#E65100">0</strong></span>
+        <span>用户数: <strong id="checkinStatUser" style="color:#2e7d32">0</strong></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>时间</th>
+              <th>用户</th>
+              <th>POI</th>
+              <th>距离</th>
+              <th>位置</th>
+              <th>打卡照片</th>
+              <th>ID</th>
+            </tr>
+          </thead>
+          <tbody id="checkinTable"></tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="card" data-section="bookings">
       <h2>📋 预约审批</h2>
       <div class="form-row">
@@ -314,6 +352,7 @@
   <script src="js/admin-shell.js"></script>
   <script src="js/admin.js"></script>
   <script src="js/admin-booking.js"></script>
+  <script src="js/admin-checkin.js"></script>
   <script src="js/admin-coupons.js"></script>
   <script src="js/admin-ar.js"></script>
   <script src="js/admin-users.js"></script>

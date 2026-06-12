@@ -14,6 +14,7 @@
     { hash: 'activities', icon: '📅', label: '活动配置', group: 'core' },
     { hash: 'users',      icon: '👥', label: '用户',     group: 'data' },
     { hash: 'bookings',   icon: '📋', label: '预约审批', group: 'data' },
+    { hash: 'checkin',    icon: '🏆', label: '打卡',     group: 'data' },
     { hash: 'data',       icon: '💾', label: '导入/导出', group: 'data' },
     { hash: 'coupons',    icon: '🎫', label: '优惠券',   group: 'biz' },
     { hash: 'redeem',     icon: '🎟️', label: '券码核销', group: 'biz' },
