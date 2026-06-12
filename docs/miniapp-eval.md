@@ -78,6 +78,28 @@
 
 ## 关键改造点分析
 
+### 0. 地图 Key 注册 (需补登)
+
+> ⚠️ **修正**: 上一版说"小程序内置地图不需要注册"是简化, 严格说 `<map>` 组件能零配置用, 但要做路线规划/POI 搜索/逆地址解析等高级功能, **必须申请腾讯位置服务 Key**。
+
+| 平台 | Key 用途 | 注册地址 | 是否必须 |
+|---|---|---|---|
+| **腾讯位置服务 (lbs.qq.com)** | 小程序 SDK + WebService API | https://lbs.qq.com/console/key/show | 🟡 推荐 (路线/POI 搜索) |
+| 微信小程序 AppID | 小程序身份 | mp.weixin.qq.com | 🔴 必办 |
+| 微信 AppSecret | 后端 `code2session` | mp.weixin.qq.com → 开发管理 | 🔴 必办 |
+
+**腾讯地图在小程序里的 3 种用法**:
+
+1. **`<map>` 内置组件** — 零配置可用, 瓦片底图基础, 度假村展示型够用, PoC 阶段用
+2. **腾讯地图小程序 SDK** (`qqmap-wx-jssdk.js`) — 需 Key, 支持路线规划/POI 搜索/逆地址解析, 全量阶段用
+3. **腾讯地图 WebService API** (后端用) — 需 Key, 打卡位置校验/逆地址解析
+
+**与现有百度 BMap 的关系**:
+- 改造后百度 AK 弃用, 之前明文暴露的 `1HV0vtN8SaYv3OOIhtDxdTD1qKIRdPbe` 应在百度控制台删除
+- 坐标系从 BD-09 改 GCJ-02, `js/coords.js` 重写
+
+---
+
 ### 1. 百度地图 BMap → 小程序 `<map>` (核心难点)
 
 **问题**:
