@@ -91,6 +91,48 @@
     tb.appendChild(btn);
   }
 
+  // v0.7.5: 拍照 fab (地图右下角, 大圆橙色, 强拍照意识)
+  function setupShootFab() {
+    const btn = document.getElementById('shootFabBtn');
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      // 直接开拍 (跳过橙色提示面板), 用最近 POI 走 normal/other
+      let userLat = lastUserLat, userLng = lastUserLng;
+      if (userLat == null || userLng == null) {
+        if (window.CampApp && window.CampApp.userLatLng) {
+          userLat = window.CampApp.userLatLng[0];
+          userLng = window.CampApp.userLatLng[1];
+        }
+      }
+      if (userLat == null || userLng == null) {
+        showToast('需要先开启定位, 才能拍照打卡');
+        return;
+      }
+      // 找 200m 内最近 POI
+      let nearPoint = null;
+      try {
+        const points = (window.CampData && window.CampData.getPointsSync) ? window.CampData.getPointsSync() : [];
+        for (const p of points) {
+          const d = haversine(userLat, userLng, p.lat, p.lng);
+          if (d <= 200 && (!nearPoint || d < nearPoint._d)) {
+            nearPoint = { ...p, _d: d };
+          }
+        }
+      } catch (e) { console.warn('[ShootFab] 读 POI 失败', e); }
+
+      if (window.ArShoot && typeof window.ArShoot.showArModal === 'function') {
+        window.ArShoot.showArModal({
+          pointId: nearPoint ? nearPoint.id : null,
+          checkinCtx: nearPoint
+            ? { point: nearPoint, userLat, userLng, dwellMs: 0 }
+            : { point: { id: null, name: '主动拍照打卡' }, userLat, userLng, dwellMs: 0, isOther: true }
+        });
+      } else {
+        showToast('AR 模态还没加载好, 请稍后再试', 'error');
+      }
+    });
+  }
+
   // 弹拍照模态, 拍完判断最近POI距离 → 范围内正常打卡, 范围外 other
   async function showSelfieCheckinPrompt() {
     if (document.getElementById('selfieCheckinModal')) return;
@@ -467,6 +509,7 @@
   function init() {
     setupCheckinBtn();
     setupSelfieBtn();
+    setupShootFab();
     setupAutoCheckin();
   }
 

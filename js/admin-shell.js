@@ -150,8 +150,42 @@
       try { window.CampAdmin.boot(); } catch (e) { console.error('[shell] boot failed:', e); }
     }
 
+    // 初始化移动端表格卡片化
+    initMobileTables();
+
     // 触发 resize 让 BMap 重算
     window.dispatchEvent(new Event('resize'));
+  }
+
+  // ===== 后台表格：自动给 td 加 data-label，用于移动端卡片化 =====
+  function enhanceMobileTables() {
+    $all('.table-wrap table').forEach(table => {
+      const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+      if (!headers.length) return;
+      table.querySelectorAll('tbody tr').forEach(tr => {
+        tr.querySelectorAll('td').forEach((td, i) => {
+          if (headers[i] && !td.getAttribute('data-label')) {
+            td.setAttribute('data-label', headers[i]);
+          }
+        });
+      });
+    });
+  }
+
+  function initMobileTables() {
+    enhanceMobileTables();
+    // 监听表格内容变化，动态添加 data-label
+    if (typeof MutationObserver !== 'undefined') {
+      const observer = new MutationObserver(mutations => {
+        const hasTableChange = mutations.some(m =>
+          m.target.closest && m.target.closest('.table-wrap table')
+        );
+        if (hasTableChange) enhanceMobileTables();
+      });
+      $all('.table-wrap').forEach(wrap => {
+        observer.observe(wrap, { childList: true, subtree: true });
+      });
+    }
   }
 
   // ===== 全局 toast =====

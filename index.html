@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#2196F3" />
   <title>露营地活动导航</title>
-  <link rel="stylesheet" href="css/style.css?v=0.7.4" />
+  <link rel="stylesheet" href="css/style.css?v=0.7.8" />
 </head>
 <body>
   <div id="map"></div>
@@ -18,36 +18,46 @@
     </div>
   </div>
 
-  <!-- 目标下拉 + 类型过滤 + 工具栏 (3 块各自一行, 紧凑) -->
+  <!-- 搜索栏：目的地选择 + 类型过滤 + 快捷工具 -->
   <div class="search-bar">
+    <!-- 目的地选择器：胶囊样式 -->
     <div class="dest-top">
-      <label for="destSelect">📍 目标</label>
-      <select id="destSelect" class="dest-top-select">
-        <option value="">-- 请选择 --</option>
-      </select>
-      <button id="endNavBtn" class="end-nav-inline-btn hidden" title="结束导航">✕ 结束导航</button>
+      <div class="dest-top-icon" aria-hidden="true">📍</div>
+      <div class="dest-top-main">
+        <label for="destSelect">要去哪里？</label>
+        <select id="destSelect" class="dest-top-select">
+          <option value="">选择活动地点</option>
+        </select>
+      </div>
+      <button id="endNavBtn" class="end-nav-inline-btn" title="结束导航" aria-label="结束导航" style="display:none">✕</button>
     </div>
-    <div class="type-chips" id="typeChips">
-      <button class="chip active" data-type="all">全部</button>
-      <button class="chip" data-type="entrance">🚪 入口</button>
-      <button class="chip" data-type="activity">⛺ 活动</button>
-      <button class="chip" data-type="flash">⚡ 快闪</button>
-      <button class="chip" data-type="restaurant">🍽️ 餐厅</button>
-      <button class="chip" data-type="teahouse">🍵 茶馆</button>
-      <button class="chip" data-type="hotel">🏨 酒店</button>
-      <button class="chip" data-type="service">🛒 服务</button>
-      <button class="chip" data-type="toilet">🚻 卫生间</button>
-      <button class="chip" data-type="other">📍 其他</button>
+
+    <!-- 类型过滤 + 清除按钮 -->
+    <div class="filter-row">
+      <div class="type-chips" id="typeChips">
+        <button class="chip active" data-type="all">全部</button>
+        <button class="chip" data-type="entrance">🚪 入口</button>
+        <button class="chip" data-type="activity">⛺ 活动</button>
+        <button class="chip" data-type="flash">⚡ 快闪</button>
+        <button class="chip" data-type="restaurant">🍽️ 餐厅</button>
+        <button class="chip" data-type="teahouse">🍵 茶馆</button>
+        <button class="chip" data-type="hotel">🏨 酒店</button>
+        <button class="chip" data-type="service">🛒 服务</button>
+        <button class="chip" data-type="toilet">🚻 卫生间</button>
+        <button class="chip" data-type="other">📍 其他</button>
+      </div>
+      <button class="chip chip-clear hidden" id="clearTypeFilter" title="清除筛选" aria-label="清除筛选">↺ 全部</button>
     </div>
-    <!-- 工具栏: 单独一行, 7 按钮紧凑横排, 水平滚动 -->
+
+    <!-- 快捷工具栏 -->
     <div class="quick-toolbar" id="quickToolbar">
       <button class="tool-btn tool-call" id="toolCallBtn" title="一键呼叫前台">
         <span class="tool-icon">📞</span>
-        <span class="tool-label">呼叫</span>
+        <span class="tool-label">呼叫前台</span>
       </button>
       <button class="tool-btn tool-ai" id="toolAiBtn" title="AI 客服咨询">
         <span class="tool-icon">🤖</span>
-        <span class="tool-label">AI</span>
+        <span class="tool-label">AI 客服</span>
       </button>
     </div>
   </div>
@@ -137,7 +147,14 @@
     </div>
   </div>
 
-  <button id="locateBtn" class="fab" title="定位到我">📍</button>
+  <!-- v0.7.5: 拍照 fab 容器 (放地图右下角, 比工具栏更明显) -->
+  <div class="fab-stack">
+    <button id="shootFabBtn" class="fab fab-shoot" title="拍照打卡 / 主动拍照">
+      <span class="fab-icon">📷</span>
+      <span class="fab-label">拍照打卡</span>
+    </button>
+    <button id="locateBtn" class="fab" title="定位到我">📍</button>
+  </div>
   <div id="compass" class="compass hidden"><div class="arrow">⬆</div></div>
 
   <!-- 百度地图 JS API (浏览器端 AK) -->
@@ -145,10 +162,10 @@
   <script src="js/coords.js"></script>
   <script src="js/baidu-map.js"></script>
   <script src="js/data.js"></script>
-  <script src="js/app.js?v=0.7.4"></script>
+  <script src="js/app.js?v=0.7.7"></script>
   <script src="js/extras.js"></script>
   <script src="js/booking.js"></script>
-  <script src="js/checkin.js"></script>
+  <script src="js/checkin.js?v=0.7.6"></script>
   <script src="js/login.js"></script>
   <script src="js/coupons.js"></script>
   <script src="js/ar.js"></script>

@@ -152,9 +152,9 @@
       if (retryBtn) retryBtn.addEventListener('click', () => { hideLocateError(); startGeolocation(); });
       if (dismissBtn) dismissBtn.addEventListener('click', hideLocateError);
 
-      // v0.7.4: 结束导航按钮默认隐藏 (drawRoute 时才按需显示)
+      // v0.7.4: 结束导航按钮默认隐藏 (drawRoute 时才按需显示, 用 style.display 双保险)
       const endBtn = $('#endNavBtn');
-      if (endBtn) endBtn.classList.add('hidden');
+      if (endBtn) { endBtn.classList.add('hidden'); endBtn.style.display = 'none'; }
 
       populateSelect();
 
@@ -241,14 +241,36 @@
   // ===== 类型过滤 =====
   function setupTypeFilter() {
     const typeChips = document.querySelectorAll('#typeChips .chip');
+    const clearBtn = document.getElementById('clearTypeFilter');
+
+    function updateClearButton() {
+      if (clearBtn) {
+        clearBtn.classList.toggle('hidden', activeTypeFilter === 'all');
+      }
+    }
+
     typeChips.forEach(chip => {
       chip.addEventListener('click', () => {
         typeChips.forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
         activeTypeFilter = chip.dataset.type;
+        updateClearButton();
         applyFilters();
       });
     });
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        typeChips.forEach(c => c.classList.remove('active'));
+        const allChip = document.querySelector('#typeChips .chip[data-type="all"]');
+        if (allChip) allChip.classList.add('active');
+        activeTypeFilter = 'all';
+        updateClearButton();
+        applyFilters();
+      });
+    }
+
+    updateClearButton();
   }
 
   function applyFilters() {
@@ -330,7 +352,7 @@
     const endBtn = $('#endNavBtn');
     if (!dest) {
       $('#routeInfo').classList.add('hidden');
-      if (endBtn) endBtn.classList.add('hidden');
+      if (endBtn) { endBtn.classList.add('hidden'); endBtn.style.display = 'none'; }
       return;
     }
 
@@ -369,7 +391,7 @@
     }
 
     $('#routeInfo').classList.remove('hidden');
-    if (endBtn) endBtn.classList.remove('hidden');
+    if (endBtn) { endBtn.classList.remove('hidden'); endBtn.style.display = ''; }
     updateRouteInfo();
   }
 
