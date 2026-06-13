@@ -19,8 +19,7 @@
     { hash: 'coupons',    icon: '🎫', label: '优惠券',   group: 'biz' },
     { hash: 'redeem',     icon: '🎟️', label: '券码核销', group: 'biz' },
     { hash: 'ar',         icon: '📸', label: 'AR 贴图',  group: 'biz' },
-    { hash: 'ar-default', icon: '🎯', label: 'AR 默认',  group: 'biz' },
-    { hash: 'wifi',       icon: '📶', label: 'WiFi 设置', group: 'sys' }
+    { hash: 'ar-default', icon: '🎯', label: 'AR 默认',  group: 'biz' }
   ];
 
   // ===== 公共工具 =====

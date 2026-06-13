@@ -60,22 +60,6 @@
     return lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271;
   }
 
-  // ===== WiFi 设置 =====
-  async function loadWifiSettings() {
-    try {
-      const res = await fetch(API_BASE + '/api/settings/wifi');
-      const j = await res.json();
-      if (j.code === 0 && j.data) {
-        const ssidEl = $('#wifiSsid');
-        const pwdEl = $('#wifiPassword');
-        if (ssidEl) ssidEl.value = j.data.ssid || '';
-        if (pwdEl) pwdEl.value = j.data.password || '';
-      }
-    } catch (e) {
-      console.warn('[admin] 加载 WiFi 配置失败', e);
-    }
-  }
-
   // ===== Boot (shell 登录通过后调用) =====
   function boot() {
     if (booted) return;
@@ -389,26 +373,6 @@
       reader.readAsText(file);
     });
 
-    // WiFi 设置表单
-    const wifiForm = $('#wifiForm');
-    if (wifiForm) {
-      wifiForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const ssid = $('#wifiSsid').value.trim();
-        const password = $('#wifiPassword').value;
-        if (!ssid) { alert('请输入 WiFi 名称'); return; }
-        try {
-          const res = await fetch(API_BASE + '/api/settings/wifi', {
-            method: 'POST',
-            headers: AUTH_HEADERS,
-            body: JSON.stringify({ ssid, password })
-          });
-          const j = await res.json();
-          if (!res.ok || j.code !== 0) throw new Error(j.message || '保存失败');
-          toast('✓ WiFi 配置已保存', 'success');
-        } catch (err) { alert('保存失败：' + err.message); }
-      });
-    }
   }
 
   // ===== 定位 =====
@@ -480,7 +444,6 @@
     boot: boot,
     // onEnter: 进入 section 时调用, 通知其他模块刷新
     onEnter: function (hash) {
-      if (hash === 'wifi') loadWifiSettings();
       // 通知子模块 (admin-booking / coupons / ar / users) 进入某 section
       window.dispatchEvent(new CustomEvent('admin-section-enter', { detail: { hash } }));
     }

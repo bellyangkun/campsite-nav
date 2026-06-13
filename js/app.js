@@ -232,7 +232,7 @@
         return new BMap.Point(bdLng, bdLat);
       });
       const viewport = map.getViewport(pts);
-      map.setViewport(viewport, { margins: [80, 60, 200, 60] });  // 上右下左
+      map.setViewport(viewport, { margins: [150, 60, 120, 60] });  // 上右下左，避开顶部搜索栏和底部按钮
     } catch (e) {
       console.warn('fitBounds 失败', e);
     }
@@ -289,6 +289,8 @@
         try { mapOverlays[id]._div.style.display = isVisible ? '' : 'none'; } catch (e) {}
       });
     }
+    // 更新 marker 名称标签：只有选中目标才显示
+    updateMarkerLabels();
     // 更新下拉框
     populateSelect();
   }
@@ -299,16 +301,30 @@
     points.forEach((p) => {
       const meta = CampData.getTypeMeta(p.type);
       const petBadge = p.petFriendly ? '<span class="pet-badge" title="宠物友好">🐾</span>' : '';
-      // 标记: emoji + 名称标签
+      const isSelected = p.id === selectedDestId;
+      // 标记: emoji + 名称标签 (默认隐藏, 选中目标才显示)
       const html = `<div class="camp-marker">
         <div class="camp-marker-icon" style="color:${meta.color};border-color:${meta.color}">${meta.icon}${petBadge}</div>
-        <div class="camp-marker-label" style="color:${meta.color}">${CampData.escapeHtml(p.name)}</div>
+        <div class="camp-marker-label ${isSelected ? 'active' : ''}" style="color:${meta.color}">${CampData.escapeHtml(p.name)}</div>
       </div>`;
       const overlay = BaiduMap.addDivMarker(map, p.lng, p.lat, html, { x: 16, y: 16 });
       mapOverlays[p.id] = overlay;
       // v0.7.3: 点击 marker 不再触发 select / 路由 (避免误选目标, marker 只展示)
       // 保留 div 引用以便后续扩展 (信息气泡等)
       const div = overlay._div;
+    });
+  }
+
+  // 更新 marker 名称标签显隐：只有选中目标显示名称
+  function updateMarkerLabels() {
+    if (!map) return;
+    points.forEach(p => {
+      const overlay = mapOverlays[p.id];
+      if (!overlay || !overlay._div) return;
+      const label = overlay._div.querySelector('.camp-marker-label');
+      if (label) {
+        label.classList.toggle('active', p.id === selectedDestId);
+      }
     });
   }
 
@@ -375,7 +391,7 @@
         const [bdLng2, bdLat2] = Wgs84ToBd09.wgs84ToBd09(dest.lng, dest.lat);
         const pts = [new BMap.Point(bdLng1, bdLat1), new BMap.Point(bdLng2, bdLat2)];
         const viewport = map.getViewport(pts);
-        map.setViewport(viewport, { margins: [80, 60, 200, 60] });
+        map.setViewport(viewport, { margins: [150, 60, 120, 60] });
       } catch (e) { console.warn('fitBounds 失败', e); }
     } else {
       // 没有用户位置, fitBounds 度假村中心 + 目标
@@ -384,7 +400,7 @@
         const [bdLng2, bdLat2] = Wgs84ToBd09.wgs84ToBd09(dest.lng, dest.lat);
         const pts = [new BMap.Point(bdLng1, bdLat1), new BMap.Point(bdLng2, bdLat2)];
         const viewport = map.getViewport(pts);
-        map.setViewport(viewport, { margins: [80, 60, 200, 60] });
+        map.setViewport(viewport, { margins: [150, 60, 120, 60] });
       } catch (e) {
         BaiduMap.setCenter(map, dest.lng, dest.lat, 17);
       }
