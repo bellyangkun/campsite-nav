@@ -68,6 +68,7 @@
       points = CampData.getPointsSync();
       renderTable();
       bindEvents();
+      loadWifiSettings();
 
       // 地图异步加载
       BaiduMap._onError = (msg) => {
@@ -373,6 +374,42 @@
       reader.readAsText(file);
     });
 
+    const wifiSaveBtn = $('#wifiSaveBtn');
+    if (wifiSaveBtn) wifiSaveBtn.addEventListener('click', saveWifiSettings);
+
+  }
+
+  async function loadWifiSettings() {
+    try {
+      const res = await fetch(API_BASE + '/api/settings/wifi');
+      const json = await res.json();
+      if (json.code === 0 && json.data) {
+        const ssidInput = $('#wifiSsid');
+        const pwdInput = $('#wifiPassword');
+        if (ssidInput) ssidInput.value = json.data.ssid || '';
+        if (pwdInput) pwdInput.value = json.data.password || '';
+      }
+    } catch (e) {
+      console.warn('[admin] load wifi settings failed', e);
+    }
+  }
+
+  async function saveWifiSettings() {
+    const ssid = ($('#wifiSsid').value || '').trim();
+    const password = ($('#wifiPassword').value || '').trim();
+    if (!ssid) { alert('请输入 WiFi 名称'); return; }
+    try {
+      const res = await fetch(API_BASE + '/api/settings/wifi', {
+        method: 'POST',
+        headers: AUTH_HEADERS,
+        body: JSON.stringify({ ssid, password })
+      });
+      const json = await res.json();
+      if (json.code !== 0) throw new Error(json.message || '保存失败');
+      toast('✓ WiFi 设置已保存', 'success');
+    } catch (err) {
+      alert('保存失败：' + err.message);
+    }
   }
 
   // ===== 定位 =====
@@ -446,6 +483,7 @@
     onEnter: function (hash) {
       // 通知子模块 (admin-booking / coupons / ar / users) 进入某 section
       window.dispatchEvent(new CustomEvent('admin-section-enter', { detail: { hash } }));
+      if (hash === 'wifi') loadWifiSettings();
     }
   };
 })();

@@ -231,8 +231,7 @@
         const [bdLng, bdLat] = Wgs84ToBd09.wgs84ToBd09(p.lng, p.lat);
         return new BMap.Point(bdLng, bdLat);
       });
-      const viewport = map.getViewport(pts);
-      map.setViewport(viewport, { margins: [150, 60, 160, 60] });  // 上右下左，避开顶部搜索栏和底部按钮
+      map.setViewport(pts, { margins: [200, 80, 200, 80] });  // 上右下左，避开顶部搜索栏/类型过滤和底部按钮/信息面板
     } catch (e) {
       console.warn('fitBounds 失败', e);
     }
@@ -390,8 +389,7 @@
         const [bdLng1, bdLat1] = Wgs84ToBd09.wgs84ToBd09(userLatLng[1], userLatLng[0]);
         const [bdLng2, bdLat2] = Wgs84ToBd09.wgs84ToBd09(dest.lng, dest.lat);
         const pts = [new BMap.Point(bdLng1, bdLat1), new BMap.Point(bdLng2, bdLat2)];
-        const viewport = map.getViewport(pts);
-        map.setViewport(viewport, { margins: [150, 60, 120, 60] });
+        map.setViewport(pts, { margins: [200, 80, 240, 80] });  // 导航时底部信息面板更高，多留空间
       } catch (e) { console.warn('fitBounds 失败', e); }
     } else {
       // 没有用户位置, fitBounds 度假村中心 + 目标
@@ -399,8 +397,7 @@
         const [bdLng1, bdLat1] = Wgs84ToBd09.wgs84ToBd09(31.481527, 121.286954);
         const [bdLng2, bdLat2] = Wgs84ToBd09.wgs84ToBd09(dest.lng, dest.lat);
         const pts = [new BMap.Point(bdLng1, bdLat1), new BMap.Point(bdLng2, bdLat2)];
-        const viewport = map.getViewport(pts);
-        map.setViewport(viewport, { margins: [150, 60, 120, 60] });
+        map.setViewport(pts, { margins: [200, 80, 240, 80] });
       } catch (e) {
         BaiduMap.setCenter(map, dest.lng, dest.lat, 17);
       }

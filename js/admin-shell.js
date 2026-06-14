@@ -11,6 +11,7 @@
   const AUTH_KEY = 'campsite_admin_authed';
   const SECTIONS = [
     { hash: 'points',     icon: '📍', label: '活动点',   group: 'core' },
+    { hash: 'wifi',       icon: '📶', label: 'WiFi',     group: 'core' },
     { hash: 'activities', icon: '📅', label: '活动配置', group: 'core' },
     { hash: 'users',      icon: '👥', label: '用户',     group: 'data' },
     { hash: 'bookings',   icon: '📋', label: '预约审批', group: 'data' },
