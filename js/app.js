@@ -232,7 +232,7 @@
         return new BMap.Point(bdLng, bdLat);
       });
       const viewport = map.getViewport(pts);
-      map.setViewport(viewport, { margins: [150, 60, 120, 60] });  // 上右下左，避开顶部搜索栏和底部按钮
+      map.setViewport(viewport, { margins: [150, 60, 160, 60] });  // 上右下左，避开顶部搜索栏和底部按钮
     } catch (e) {
       console.warn('fitBounds 失败', e);
     }

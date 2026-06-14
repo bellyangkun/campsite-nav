@@ -127,7 +127,7 @@ html, body {
 .fab-stack {
   position: fixed;
   left: 50%;
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
   z-index: 100;
   display: flex;
@@ -162,7 +162,7 @@ html, body {
 
 .compass {
   position: fixed;
-  bottom: calc(80px + env(safe-area-inset-bottom, 0px));  /* 紧贴 fab 上方 8px */
+  bottom: calc(140px + env(safe-area-inset-bottom, 0px));  /* 在 fab 按钮上方 */
   right: 12px;
   z-index: 10;
   width: 44px;
