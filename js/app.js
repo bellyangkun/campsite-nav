@@ -329,6 +329,7 @@
 
   function populateSelect() {
     const sel = $('#destSelect');
+    const currentValue = sel.value;
     sel.innerHTML = '<option value="">-- 请选择 --</option>';
     points.forEach((p) => {
       const opt = document.createElement('option');
@@ -336,6 +337,9 @@
       opt.textContent = `${CampData.getTypeMeta(p.type).icon} ${p.name}`;
       sel.appendChild(opt);
     });
+    // 选择目标后保持选中状态，确保框内显示目标名称
+    if (selectedDestId) sel.value = selectedDestId;
+    else if (currentValue) sel.value = currentValue;
   }
 
   function createUserMarker(lat, lng) {
