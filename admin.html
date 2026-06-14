@@ -361,6 +361,40 @@
         <button type="button" id="arDefaultSaveBtn" class="btn">💾 保存默认</button>
       </div>
     </div>
+
+    <!-- ===== AI 客服 FAQ ===== -->
+    <div class="card" data-section="faqs">
+      <h2>❓ AI 客服 FAQ</h2>
+      <p class="hint">下方列表会作为 H5 页面 AI 客服的"常见问题"快捷按钮，也会用于用户手动输入时的关键词匹配。保存后立即生效。</p>
+      <div class="form-row" style="align-items:flex-end">
+        <label style="flex:1">
+          <span style="display:block;font-size:12px;color:#666;margin-bottom:4px">问题（关键词）</span>
+          <input type="text" id="faqQ" placeholder="如：营业时间" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px" />
+        </label>
+        <label style="flex:2">
+          <span style="display:block;font-size:12px;color:#666;margin-bottom:4px">答案</span>
+          <input type="text" id="faqA" placeholder="简短回答，MiniMax 会自动润色" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px" />
+        </label>
+        <button type="button" id="faqAddBtn" class="btn">➕ 添加</button>
+      </div>
+      <div class="form-row">
+        <button type="button" id="faqSaveBtn" class="btn">💾 保存到服务器</button>
+        <span id="faqSaveStatus" style="color:#666;font-size:13px;margin-left:12px"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:60px;text-align:center">显示</th>
+              <th style="width:180px">问题</th>
+              <th>答案</th>
+              <th style="width:160px">操作</th>
+            </tr>
+          </thead>
+          <tbody id="faqTable"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <!-- 百度地图 JS API (浏览器端 AK) -->
@@ -376,5 +410,6 @@
   <script src="js/admin-coupons.js"></script>
   <script src="js/admin-ar.js"></script>
   <script src="js/admin-users.js"></script>
+  <script src="js/admin-faqs.js?v=0.9.4"></script>
 </body>
 </html>
